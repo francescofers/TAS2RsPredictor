@@ -380,25 +380,6 @@ class EarlyStopper:
                 return True
         return False
 
-def get_rates(y_test,probs):
-    fpr, tpr, thresholds = roc_curve(y_test, probs, drop_intermediate=False)
-    auc_value = auc(fpr,tpr)
-    optimal_idx = np.argmax(tpr - fpr)
-    optimal_threshold = thresholds[optimal_idx]
-    return fpr,tpr,auc_value,optimal_threshold
-
-def plot_roc(fpr,tpr,ax,color='b',alpha=1,label=False):
-    auc_value = auc(fpr,tpr)
-    if not label:
-        ax.plot(fpr, tpr, color,alpha=alpha,zorder=0)
-    
-    elif label=='auc':
-        auc_value = auc(fpr,tpr)
-        ax.plot(fpr, tpr, color, label = 'AUC = %0.2f' % auc_value,alpha=alpha,zorder=0)
-    else:
-        ax.plot(fpr, tpr, color, label = label, alpha = alpha, zorder=0)
-    return ax
-    
 dataset = MolDataset(root='./')
 
 NUM_REC = 22
@@ -435,13 +416,6 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"[INFO   ] Device: {device}")
 weights = torch.tensor([1, 1.5]).type(torch.FloatTensor).to(device)
 for fold, (train_ids, val_ids) in enumerate(kfold.split(training_set,training_set.y)):
-    image_name = OUTPUTDIR + os.sep + 'Images' + os.sep + f'fold_{fold+1}.png'
-    
-    fig,ax = plt.subplots(figsize=(8/2.54,8/2.54))
-    
-    if not os.path.exists(OUTPUTDIR + os.sep + 'Images'):
-        os.makedirs(OUTPUTDIR + os.sep + 'Images')
-    
     model_name = OUTPUTDIR + os.sep + 'Models' + os.sep + f'fold_{fold+1}.pt'
     if not os.path.exists(OUTPUTDIR + os.sep + 'Models'):
         os.makedirs(OUTPUTDIR + os.sep + 'Models')
@@ -561,27 +535,11 @@ for fold, (train_ids, val_ids) in enumerate(kfold.split(training_set,training_se
         if REDUCE_LR_ON_PLATEAU:
             scheduler.step(test_loss)
 
-    # Plot loss:
-    fig,ax = plt.subplots(figsize=(8/2.54,8/2.54))
-    ax.plot(range(1,last_epoch+1),train_loss_list,label='Train',color='navy')
-    ax.plot(range(1,last_epoch+1),val_loss_list,label='Test',color='darkred')
-    ax.legend(frameon=False)
-    ax.set_xlabel('Epoch')
-    ax.set_ylabel('Loss')
-    # remove top and right spines
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    # save the figure
-    fig.tight_layout()
-    fig.savefig(image_name,dpi=600)
-    plt.close(fig)
-
     # Save the model:
     torch.save(model.state_dict(), model_name)
 
     # Evaluate the model with the roc curve:
     model.eval()
-    #with torch.no_grad():
     y_train, train_probs = [], []
     for data in train_loader:
         data = data.to(device)
@@ -595,10 +553,8 @@ for fold, (train_ids, val_ids) in enumerate(kfold.split(training_set,training_se
         del data
     train_probs = np.concatenate(train_probs)
     y_train = np.concatenate(y_train)
-    t_fpr,t_tpr,t_auc_value,_ = get_rates(y_train,train_probs)
     # Plot the roc curve for training:
     if t_auc_value > 0.55:
-    #     ax_roc = plot_roc(t_fpr,t_tpr,ax_roc,color='darkgreen',alpha=0.5)
         tpr_points = np.interp(fpr_points, t_fpr, t_tpr)
         tpr_train.append(tpr_points)
 
@@ -614,10 +570,8 @@ for fold, (train_ids, val_ids) in enumerate(kfold.split(training_set,training_se
         del data
     probs = np.concatenate(probs)
     y_val = np.concatenate(y_val)
-    fpr,tpr,auc_value,_ = get_rates(y_val,probs)
     # Plot the roc curve for validation:
     if auc_value > 0.55:
-        # ax_roc = plot_roc(fpr,tpr,ax_roc,color='navy',alpha=0.5)
         tpr_points = np.interp(fpr_points, fpr, tpr)
         tpr_val.append(tpr_points)
     
@@ -648,8 +602,7 @@ print(f'[INFO   ] Best Model is at fold {best_model_ids+1}')
 # Evaluate the model on the test set:
 test_loader = DataLoader(test_set, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, persistent_workers=False)
 y_test, probs, y_pred = [], [], []
-#outputs = torch.empty()
-#with torch.no_grad():
+
 model.eval()
 for data in test_loader:
     data = data.to(device)
@@ -662,99 +615,3 @@ for data in test_loader:
 probs = np.concatenate(probs)
 y_test = np.concatenate(y_test)
 y_pred = np.concatenate(y_pred)
-fpr,tpr,auc_value,_ = get_rates(y_test,probs)
-
-# Plot the roc curve:
-train_mean_tpr, train_std_tpr = np.vstack(tpr_train).mean(axis=0), np.vstack(tpr_train).std(axis=0)
-val_mean_tpr, val_std_tpr = np.vstack(tpr_val).mean(axis=0), np.vstack(tpr_val).std(axis=0)
-fig_roc,ax_roc = plt.subplots(figsize=(8/2.54,8/2.54))
-ax_roc.plot(fpr_points, train_mean_tpr, color='steelblue',
-            label=r'Train (AUC = {} $\pm$ {})'.format(np.round(np.mean(train_aucs_clean),2),np.round(np.std(train_aucs_clean),2)),alpha=1)
-ax_roc.fill_between(fpr_points, train_mean_tpr - train_std_tpr, train_mean_tpr + train_std_tpr, facecolor='steelblue', edgecolor=None, alpha=0.2)
-ax_roc.plot(fpr_points, val_mean_tpr, color='darkgreen',
-            label=r'Val (AUC = {} $\pm$ {})'.format(np.round(np.mean(aucs_clean),2),np.round(np.std(aucs_clean),2)),alpha=1)
-ax_roc.fill_between(fpr_points, val_mean_tpr - val_std_tpr, val_mean_tpr + val_std_tpr, facecolor='darkgreen', edgecolor=None, alpha=0.2)
-ax_roc.plot(fpr, tpr, color='darkred', label = 'Test (AUC = {})'.format(np.round(auc_value,2)),alpha=1)
-ax_roc.plot([0, 1], [0, 1],'k--',zorder=0)
-ax_roc.set_xlim([-0.05, 1.05])
-ax_roc.set_ylim([-0.05, 1.05])
-ax_roc.set_ylabel('True Positive Rate')
-ax_roc.set_xlabel('False Positive Rate')
-ax_roc.spines['top'].set_visible(False)
-ax_roc.spines['right'].set_visible(False)
-ax_roc.legend(frameon=False,loc=(0.3,0),fontsize=8)
-fig_roc.tight_layout()
-roc_name = OUTPUTDIR + os.sep + 'Images' + os.sep + f'roc_curve.png'
-fig_roc.savefig(roc_name,dpi=600,facecolor='white')
-roc_name_svg = OUTPUTDIR + os.sep + 'Images' + os.sep + f'roc_curve.svg'
-fig_roc.savefig(roc_name_svg,dpi=600,facecolor='white')
-plt.close(fig_roc)
-
-# Plot Precision-Recall curve
-# Do a bootstrap of the test set to have a better estimate of the AUC and avgP
-from sklearn.utils import resample
-n_bootstraps = 100
-bootstrapped_avgP = []
-bootstrapped_pr_curve = []
-bootstrapped_pr_auc = []
-recall_points = np.linspace(0,1,500)[::-1]
-for i in range(n_bootstraps):
-    y_bpred, y_bprob, y_btest = resample(y_pred, probs, y_test, stratify=y_test, random_state=i, n_samples=np.round(0.9*len(y_test),0).astype(int))
-    precision, recall, _ = precision_recall_curve(y_btest,y_bprob)
-    precision_points = np.interp(recall_points[::-1], recall[::-1], precision[::-1])
-    pr_auc = auc(recall,precision)
-    avg_precision = average_precision_score(y_btest, y_bprob)
-    bootstrapped_avgP.append(avg_precision)
-    bootstrapped_pr_curve.append(precision_points)
-    bootstrapped_pr_auc.append(pr_auc)
-
-mean_precision = np.mean(np.vstack(bootstrapped_pr_curve), axis=0)[::-1]
-std_precision = np.std(np.vstack(bootstrapped_pr_curve), axis=0)
-mean_pr_auc, std_pr_auc = np.mean(bootstrapped_pr_auc), np.std(bootstrapped_pr_auc)
-mean_avgP, std_avgP = np.mean(bootstrapped_avgP), np.std(bootstrapped_avgP)
-
-
-# avg_precision = average_precision_score(y_test, y_pred)
-fig_pr,ax_pr = plt.subplots(figsize=(8/2.54,8/2.54))
-# precision, recall, _ = precision_recall_curve(y_test,probs)
-# pr_auc = auc(recall,precision)
-no_skill = len(y_test[y_test==1]) / len(y_test)
-ax_pr.plot([0, 1], [no_skill, no_skill], 'k--')
-# ax_pr.plot(recall, precision, label=f'avg precision = {np.round(avg_precision,3)} (AUC = {np.round(pr_auc,2)})')#f'PR AUC = {np.round(pr_auc,2)}')
-ax_pr.plot(recall_points, mean_precision,
-           label=f'avgP={np.round(mean_avgP,2)}$\pm${np.round(std_avgP,2)} (AUC={np.round(mean_pr_auc,2)}$\pm${np.round(std_pr_auc,2)})',
-            color='darkred')
-ax_pr.fill_between(recall_points, mean_precision - std_precision, mean_precision + std_precision, facecolor='darkred', edgecolor=None, alpha=0.2)
-ax_pr.set_ylabel('Precision')
-ax_pr.set_xlabel('Recall')
-ax_pr.set_xticks(np.arange(0,1.1,0.2))
-ax_pr.set_yticks(np.arange(0,1.1,0.2))
-ax_pr.spines['top'].set_visible(False)
-ax_pr.spines['right'].set_visible(False)
-ax_pr.legend(frameon=False,loc=(0,0),fontsize=8)
-fig_pr.tight_layout()
-pr_name = OUTPUTDIR + os.sep + 'Images' + os.sep + f'pr_curve.png'
-fig_pr.savefig(pr_name,dpi=600,facecolor='white')
-pr_name_svg = OUTPUTDIR + os.sep + 'Images' + os.sep + f'pr_curve.svg'
-fig_pr.savefig(pr_name_svg,dpi=600,facecolor='white')
-plt.close(fig_pr)
-
-# Save PR and ROC curve xy data
-pr_curve_data = OUTPUTDIR + os.sep + 'Images' + os.sep + f'pr_curve_data.csv'
-roc_curve_data_CV = OUTPUTDIR + os.sep + 'Images' + os.sep + f'roc_curve_data_CV.csv'
-roc_curve_data = OUTPUTDIR + os.sep + 'Images' + os.sep + f'roc_curve_data.csv'
-pd.DataFrame(np.vstack((recall_points, mean_precision,std_precision)),
-             index=['recall','precision','std_precision']).transpose().to_csv(pr_curve_data,sep=',')
-pd.DataFrame(np.vstack((fpr_points, train_mean_tpr,train_std_tpr,val_mean_tpr,val_std_tpr)),
-             index=['fpr','tpr_train','std_train','tpr_val','std_val']).transpose().to_csv(roc_curve_data_CV,sep=',')
-pd.DataFrame(np.vstack((fpr,tpr)),index=['fpr','tpr']).transpose().to_csv(roc_curve_data,sep=',')
-# pd.DataFrame(np.vstack((recall, precision)),index=['recall','precision']).transpose().to_csv(pr_curve_data,sep=',')
-# pd.DataFrame(np.vstack((fpr, tpr)),index=['fpr','tpr']).transpose().to_csv(roc_curve_data,sep=',')
-
-# Save classification report
-report = classification_report(y_test, y_pred,output_dict=True)
-pd.DataFrame(report).transpose().to_csv(OUTPUTDIR + os.sep + 'Images' + os.sep + 'classification_report.csv')
-
-# save predictions on test set
-preds = pd.DataFrame(np.vstack((y_test, y_pred, probs)).transpose(),columns=['True','Predicted','Probs'])
-preds.to_csv(OUTPUTDIR + os.sep + 'Images' + os.sep + 'predictions.csv',sep=',',index=False)
