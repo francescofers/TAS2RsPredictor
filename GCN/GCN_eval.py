@@ -410,7 +410,7 @@ if GT:
     unk = ['Unknown'] * len(molecules)
     final_results_df.insert(loc=0, column='Ground Truth', value=unk)
     # Importing dataset for checks
-    tdf = pd.read_csv('Data/expanded_dataset/expanded_noOrph_22.csv', header=0, index_col=0)
+    tdf = pd.read_csv('../data/dataset.csv', header=0, index_col=0)
     tdf.columns = tdf.columns.astype(int)
 
     # Check if input smiles are already present in ground truth dataset
