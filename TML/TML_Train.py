@@ -28,10 +28,10 @@ mpl.rcParams['legend.frameon'] = False
 
 from sklearn.metrics import roc_curve, auc, silhouette_score, RocCurveDisplay, average_precision_score, precision_recall_curve, classification_report
 NUM_REC = 22
-PATH = f'../Data/expanded_dataset/expanded_noOrph_{NUM_REC}.csv'
+PATH = f'../data/dataset.csv'
 
 
-# Importing the expanded dataset without all receptors that bind to less than 5 ligands
+# Importing the dataset
 df = pd.read_csv(PATH, header=0, index_col=0)
 
 # Min-max scaling function
@@ -105,7 +105,6 @@ def Calc_MFps():
         for row, array in zip(fps_df.index, mol_fps_np):
             fps_df.loc[row, [f'f_{i+1}' for i in range(len(array))]] = array
         fps_df = fps_df.astype(int)
-        fps_df.to_csv(f'{PATH.split(".c")[0]}_fps.csv')
 
     return fps_df
 
@@ -127,7 +126,6 @@ def Calc_mord(norm=True):
         mord_df.drop(columns=mord_df.columns[mord_df.sum()==0], inplace=True)
         # Removing correlated features
         remove_corr_features(mord_df,0.90)
-        mord_df.to_csv(f'{PATH.split(".c")[0]}_mord.csv')
     
     # Min-Max normalization
     if norm:
@@ -169,7 +167,7 @@ def Get_tanimoto_matrix(df):
     grp_ndx = df.index.format()[:]
     mol_fps = [Calc_fps(mol,1024,2) for mol in grp_ndx]
     try:
-        tanimoto_matrix = np.loadtxt(f'../Data/expanded_dataset/tanimoto/tanimoto_simmat_tot.txt')
+        tanimoto_matrix = np.loadtxt(f'../data/tanimoto_simmat_tot.txt')
     except OSError:
         # Initialize tanimoto matrix:
         print("Calculating Tanimoto similarity matrices for whole dataset of ligands. This will take a while...")
@@ -179,7 +177,7 @@ def Get_tanimoto_matrix(df):
             for j in range(len(mol_fps)):
                 tanimoto_matrix[i,j] = tanimoto_distance(mol_fps[i],mol_fps[j])
         print(f"    Total Tanimoto simmat saved")
-        np.savetxt(f'../Data/expanded_dataset/tanimoto/tanimoto_simmat_tot.txt',tanimoto_matrix)
+        np.savetxt(f'../data/tanimoto_simmat_tot.txt',tanimoto_matrix)
     
     return tanimoto_matrix
 
@@ -268,79 +266,6 @@ def skf_crossval(x, y, ax):
     std_auc = np.std(aucs)
     
     best_model = models[np.argmax(aucs)]
-
-    ax.plot(fpr_points, mean_tpr, color='darkgreen',
-            label=r'Val (AUC = {} $\pm$ {})'.format(np.round(mean_auc,2),np.round(std_auc,2)),alpha=1)
-    ax.fill_between(fpr_points, mean_tpr - std_tpr, mean_tpr + std_tpr, facecolor='darkgreen', edgecolor=None, alpha=0.2)
-
-    return best_model
-
-# Stratified K-fold cross validation function
-def OLDskf_crossval(x, y):
-    
-    n_fold = 10
-    skf = StratifiedKFold(n_splits=n_fold, shuffle=True, random_state=42)
-    model_cv = Get_model(1000,0.1)
-    tprs = []
-    aucs = []
-    models = []
-    mean_fpr = np.linspace(0, 1, 100)
-    for fold, (train, val) in enumerate(skf.split(x, y)):
-        model_cv.fit(x.iloc[train], y.iloc[train])
-        viz = RocCurveDisplay.from_estimator(
-            model_cv,
-            x.iloc[val],
-            y.iloc[val],
-            name=f"ROC fold {fold}",
-            alpha=0.3,
-            lw=1,
-            ax=axes,
-            plot_chance_level=(fold == n_fold - 1),
-        )
-        interp_tpr = np.interp(mean_fpr, viz.fpr, viz.tpr)
-        interp_tpr[0] = 0.0
-        tprs.append(interp_tpr)
-        aucs.append(viz.roc_auc)
-        models.append(model_cv)
-
-    no_overfitted_aucs = [0.1 if x == 1 else x for x in aucs]
-    best_model = models[np.argmax(no_overfitted_aucs)]
-
-    mean_tpr = np.mean(tprs, axis=0)
-    mean_tpr[-1] = 1.0
-    mean_auc = auc(mean_fpr, mean_tpr)
-    std_auc = np.std(aucs)
-    axes.plot(
-        mean_fpr,
-        mean_tpr,
-        color="b",
-        label=r"Mean ROC (AUC = %0.2f $\pm$ %0.2f)" % (mean_auc, std_auc),
-        lw=2,
-        alpha=0.8,
-    )
-
-    std_tpr = np.std(tprs, axis=0)
-    tprs_upper = np.minimum(mean_tpr + std_tpr, 1)
-    tprs_lower = np.maximum(mean_tpr - std_tpr, 0)
-    axes.fill_between(
-        mean_fpr,
-        tprs_lower,
-        tprs_upper,
-        color="grey",
-        alpha=0.2,
-        label=r"$\pm$ 1 std. dev.",
-    )
-
-    axes.set(
-        xlim=[-0.05, 1.05],
-        ylim=[-0.05, 1.05],
-        xlabel="False Positive Rate",
-        ylabel="True Positive Rate",
-        title=f"GB on DT (10-Fold CV) on Expanded noOrph (LB) || ROC curves",
-    )
-    axes.axis("square")
-    #axes[p_row, p_col].legend(loc="center left", bbox_to_anchor=(1,0.5))
-
     return best_model
 
 # Preparing pairs dataset
@@ -385,5 +310,5 @@ print('Cross-Validation on training set with Stratified KFold...')
 best_model = skf_crossval(x_train,y_train,axes)
 
 import pickle
-with open('TML_model.pkl', 'wb') as f:
+with open('src/new_TML_model.pkl', 'wb') as f:
      pickle.dump(best_model, f)
