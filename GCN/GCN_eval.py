@@ -34,11 +34,8 @@ from Virtuous import TestAD
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-#Possible Receptors
-#hTAS2R = [1, 3, 4, 5, 7, 8, 9, 10, 13, 14, 16, 38, 39, 40, 41, 42, 43, 44, 46, 47, 49, 50]
-
 # What to investigate?
-PATH = 'Data/GCN/test.txt' #'PATH/TO/SMILES/FILE.txt'
+PATH = '../data/test.txt' #'PATH/TO/SMILES/FILE.txt'
 
 # Overrides naming of molecules as molecule_N, if False the standardized SMILES will be used
 NAME_OVERRIDE = False
@@ -227,9 +224,7 @@ class BitterGCN(torch.nn.Module):
         self.relu = ReLU()
         self.conv1 = GATv2Conv(num_node_features,32,dropout=0.1,edge_dim=num_edge_features)
         self.conv2 = GATv2Conv(32,8,dropout=0.1,edge_dim=num_edge_features)
-        #self.conv1 = MFConv(num_node_features,32,max_degree=5,aggr='mean')
         self.bn1 = torch.nn.BatchNorm1d(32)
-        #self.conv2 = MFConv(32,8,max_degree=5,aggr='mean')
         self.bn2 = torch.nn.BatchNorm1d(8)
 
         self.dropout = Dropout(p=0.1)
