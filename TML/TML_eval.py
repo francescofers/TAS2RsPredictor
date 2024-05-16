@@ -9,7 +9,7 @@ import numpy as np
 import os
 from Virtuous import Calc_Mordred, ReadMol, Standardize, DefineAD, TestAD #,Calc_fps
 
-PATH = 'Data/TML/test.txt' #'PATH/TO/SMILES/FILE.txt'
+PATH = '../data/test.txt' #'PATH/TO/SMILES/FILE.txt'
 
 GT = True # TRUE for Ground Truth Check
 
@@ -18,34 +18,18 @@ with open(PATH) as f:
     smiles = f.read().splitlines()
 
 # Applicability Domain file path
-AD_file = 'Data/TML/AD.pkl'
-if os.path.isfile('Data/TML/AD.pkl'):
-    pass
-else:
-    data_train = pd.read_csv('Data/expanded_dataset/LB_Whole_22_SFS_DataTrain.csv',header=0,index_col=0)
-    data_train["Parent_SMILES"] = data_train.index
-    DefineAD(data_train, smile_field = "Parent_SMILES", output_filename = "Data/TML/AD.pkl", nbits=1024, radius=2)
+AD_file = '../data/AD.pkl'
 
 # Load the final model
-model = pickle.load(open('Data/TML/LB_Whole_22_SFS.pkl','rb'))
+model = pickle.load(open('src/TML_model.pkl','rb'))
 
 # Importing min and max value to min-max Mordred descriptors
-try:
-    min_max = pd.read_csv('Data/TML/min_max_mord_fs.csv',header=0,index_col=0)
-    selected_columns = pd.read_csv('Data/TML/LB_Whole_22_sel_feature_per_iter.csv',header=0).iloc[131,3]
-    selected_columns = ast.literal_eval(selected_columns)
-
-except FileNotFoundError:
-    selected_columns = pd.read_csv('Data/TML/LB_Whole_22_sel_feature_per_iter.csv',header=0).iloc[131,3]
-    selected_columns = ast.literal_eval(selected_columns)
-    mord_df = pd.read_csv('Data/expanded_dataset/expanded_noOrph_22_mord.csv', header=0, index_col=0)
-    selected_mord = [x for x in selected_columns if 'f_' not in x]
-    mord_df = mord_df[selected_mord]
-    min_max = pd.DataFrame([mord_df.min(), mord_df.max()],columns=mord_df.columns,index=['min','max'])
-    min_max.to_csv('Data/TML/min_max_mord_fs.csv',sep=',')
+min_max = pd.read_csv('src/min_max_mord_fs.csv',header=0,index_col=0)
+selected_columns = pd.read_csv('src/TML_sel_feature_per_iter.csv',header=0).iloc[131,3]
+selected_columns = ast.literal_eval(selected_columns)
 
 # Importing dataset for checks
-tdf = pd.read_csv('Data/expanded_dataset/expanded_noOrph_22.csv', header=0, index_col=0)
+tdf = pd.read_csv('../data/dataset.csv', header=0, index_col=0)
 tdf.columns = tdf.columns.astype(int)
 
 # Receptors that the model is trained to evaluate over
