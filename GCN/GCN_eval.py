@@ -182,7 +182,7 @@ class MolDataset_exp(InMemoryDataset):
         # Read the input data (already in the format for prediction)
         data = pd.read_csv(self.raw_paths[0],index_col=0)
 
-        min_max = pd.read_csv('Data/GCN/min_max.csv',index_col=0,header=0)
+        min_max = pd.read_csv('src/min_max.csv',index_col=0,header=0)
         min_f = min_max.iloc[0, :].values.tolist()
         max_f = min_max.iloc[1, :].values.tolist()
         data_list = []
@@ -349,10 +349,10 @@ def plot_on_mol(mol,name,receptor,pred,activations, gradients):
 
 b_s = 22
 
-data = MolDataset_exp(root='./')
+data = MolDataset_exp(root='src/')
 test_loader =  DataLoader(data, batch_size=b_s, shuffle=False, num_workers=0, persistent_workers=False)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-best_model = 'Data/GCN/GCN_model.pt'
+best_model = 'src/GCN_model.pt'
 model = BitterGCN(data.num_node_features - 22, data.num_edge_features)
 model.load_state_dict(torch.load(best_model,map_location=torch.device('cpu')),strict=False)
 model = model.to(device)
@@ -429,7 +429,7 @@ if GT:
     final_results_df.update(std_fullyknown_smiles)
 
 # CHECK if in Applicability Domain
-AD_file = 'Data/GCN/AD.pkl'
+AD_file = 'src/AD.pkl'
 check_AD = [TestAD(smi, filename=AD_file, verbose = False, sim_threshold=0.2, neighbors = 5, metric = "tanimoto") for smi in molecules]
 test       = [i[0] for i in check_AD]
 final_results_df.insert(loc=0, column='Check AD', value=test)
