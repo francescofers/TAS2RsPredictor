@@ -378,7 +378,7 @@ class EarlyStopper:
                 return True
         return False
 
-dataset = MolDataset(root='./')
+dataset = MolDataset(root='src/')
 
 NUM_REC = 22
 N_EPOCHS = 200
