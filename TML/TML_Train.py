@@ -167,7 +167,7 @@ def Get_tanimoto_matrix(df):
     grp_ndx = df.index.format()[:]
     mol_fps = [Calc_fps(mol,1024,2) for mol in grp_ndx]
     try:
-        tanimoto_matrix = np.loadtxt(f'../data/tanimoto_simmat_tot.txt')
+        tanimoto_matrix = np.loadtxt(f'src/tanimoto_simmat_tot.txt')
     except OSError:
         # Initialize tanimoto matrix:
         print("Calculating Tanimoto similarity matrices for whole dataset of ligands. This will take a while...")
@@ -177,7 +177,7 @@ def Get_tanimoto_matrix(df):
             for j in range(len(mol_fps)):
                 tanimoto_matrix[i,j] = tanimoto_distance(mol_fps[i],mol_fps[j])
         print(f"    Total Tanimoto simmat saved")
-        np.savetxt(f'../data/tanimoto_simmat_tot.txt',tanimoto_matrix)
+        np.savetxt(f'src/tanimoto_simmat_tot.txt',tanimoto_matrix)
     
     return tanimoto_matrix
 
