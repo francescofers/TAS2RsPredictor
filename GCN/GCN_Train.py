@@ -269,9 +269,7 @@ class BitterGCN(torch.nn.Module):
         self.relu = ReLU()
         self.conv1 = GATv2Conv(num_node_features,32,dropout=DROPOUT,edge_dim=num_edge_features)
         self.conv2 = GATv2Conv(32,8,dropout=DROPOUT,edge_dim=num_edge_features)
-        #self.conv1 = MFConv(num_node_features,32,max_degree=5,aggr='mean')
         self.bn1 = torch.nn.BatchNorm1d(32)
-        #self.conv2 = MFConv(32,8,max_degree=5,aggr='mean')
         self.bn2 = torch.nn.BatchNorm1d(8)
 
         self.dropout = Dropout(p=DROPOUT)
