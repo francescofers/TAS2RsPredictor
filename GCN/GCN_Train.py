@@ -12,17 +12,13 @@ from torch_geometric.nn import global_mean_pool, GATv2Conv
 from torch.nn import Linear, Dropout, ReLU
 import torch.nn.functional as F
 from torch_geometric.loader import DataLoader
-from torch_geometric.utils.mask import index_to_mask
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.cluster import AgglomerativeClustering
-from sklearn.metrics import auc, roc_curve, silhouette_score, average_precision_score, classification_report, precision_recall_curve
-import torch.multiprocessing as mp
+from sklearn.metrics import silhouette_score
 import os, shutil
-import matplotlib.pyplot as plt
 from time import time
-from sklearn.metrics import pairwise_distances
-import sys
+from sklearn.metrics import pairwise_distances, roc_curve, auc
 
 class MolDataset(InMemoryDataset):
     """Class that defines the dataset for the model."""
@@ -122,41 +118,8 @@ class MolDataset(InMemoryDataset):
                             )
                 
             return G
-
-        def tanimoto_distance(bitstring1, bitstring2):
-            """ Function to compute the tainomoto similarity between to fingerprints. """
-            # Calculate the tanimoto distance between the two bit strings (without using RDKit):
-            # Check if fingerprints are numpy arrays of integers, if not convert them:
-            if not isinstance(bitstring1, np.ndarray):
-                bitstring1 = np.array(bitstring1,dtype=int)
-            elif bitstring1.dtype != int:
-                bitstring1 = np.array(bitstring1,dtype=int)
-            if not isinstance(bitstring2, np.ndarray):
-                bitstring2 = np.array(bitstring2)
-            elif bitstring2.dtype != int:
-                bitstring2 = np.array(bitstring2,dtype=int)
-
-            # raise errors in the length of the two bit strings are different:
-            if len(bitstring1) != len(bitstring2):
-                raise ValueError("Bitstrings have different length!")
-            
-            # Calculate the dot product of the two arrays:
-            dot_product = np.dot(bitstring1,bitstring2)
-            # Calculate the magnitude of the two arrays:
-            magnitude = np.sum(bitstring1) + np.sum(bitstring2) - np.sum(dot_product)
-            return 1 - (dot_product / magnitude)
         
         def Get_tanimoto_matrix(df):
-            """
-            mol_fps = [GetMorganFingerprintAsBitVect(Chem.MolFromSmiles(smiles),2,nBits=1024,useChirality=True) for smiles,_ in df.iterrows()]
-            tanimoto_matrix = np.zeros((len(mol_fps),len(mol_fps)))
-            # Iterate over all pairs of fingerprints and calculate the tanimoto similarity using the helper function:
-            print(f'{i}/{j}')
-            for i in range(len(mol_fps)):
-                for j in range(len(mol_fps)):
-                    tanimoto_matrix[i,j] = tanimoto_distance(mol_fps[i],mol_fps[j])
-                    print(f'{i}/{j}')
-            """
             mol_fps = [np.array(GetMorganFingerprintAsBitVect(Chem.MolFromSmiles(smiles),2,nBits=1024,useChirality=True),dtype=bool) for smiles,_ in df.iterrows()]
             mol_fps = np.vstack(mol_fps)
             tanimoto_matrix = pairwise_distances(mol_fps, metric='jaccard')
@@ -281,7 +244,7 @@ class BitterGCN(torch.nn.Module):
         self.fc4 = Linear(8, 4)
          
         # Output layer for classification:
-        self.output = Linear(4, 2)         # Output layer with 1 neuron for regression
+        self.output = Linear(4, 2) 
 
         # Placeholder for Explainability
         self.gradients = None
@@ -378,10 +341,17 @@ class EarlyStopper:
                 return True
         return False
 
-dataset = MolDataset(root='src/')
+def get_rates(y_test,probs):
+    fpr, tpr, thresholds = roc_curve(y_test, probs, drop_intermediate=False)
+    auc_value = auc(fpr,tpr)
+    optimal_idx = np.argmax(tpr - fpr)
+    optimal_threshold = thresholds[optimal_idx]
+    return fpr,tpr,auc_value,optimal_threshold
+
+dataset = MolDataset(root='./src/train')
 
 NUM_REC = 22
-N_EPOCHS = 200
+N_EPOCHS = 1#200
 LR = 0.0005
 REDUCE_LR_ON_PLATEAU = True
 BATCH_SIZE = 16
@@ -389,15 +359,14 @@ NUM_WORKERS = 0
 DROPOUT = 0.1
 WD = 0.0005
 TEST_SIZE = 0.2
-OUTPUTDIR = os.getcwd() + os.sep + 'Output'
+OUTPUTDIR = os.getcwd() + os.sep + 'Models'
 
 # split the dataset into train and test
 kfold = StratifiedKFold(n_splits=10,random_state=42,shuffle=True)
-if not os.path.exists(OUTPUTDIR):
-    os.makedirs(OUTPUTDIR)
-else:
-    # remove all everything in the output directory
+if os.path.exists(OUTPUTDIR):
     shutil.rmtree(OUTPUTDIR)
+os.makedirs(OUTPUTDIR)
+
 cluster_ids = np.loadtxt(dataset.processed_paths[0]+'.cluster_ids', delimiter=',', dtype=int)
 train_indexes, test_indexes = train_test_split(np.array(dataset.indices()), test_size=TEST_SIZE, random_state=42,stratify=cluster_ids)
 # isolate train and test datasets
@@ -409,14 +378,13 @@ train_aucs = []
 start_time = time()
 fpr_points = np.linspace(0,1,500)
 tpr_train, tpr_val = [], []
+
 # Define the device:
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"[INFO   ] Device: {device}")
 weights = torch.tensor([1, 1.5]).type(torch.FloatTensor).to(device)
 for fold, (train_ids, val_ids) in enumerate(kfold.split(training_set,training_set.y)):
-    model_name = OUTPUTDIR + os.sep + 'Models' + os.sep + f'fold_{fold+1}.pt'
-    if not os.path.exists(OUTPUTDIR + os.sep + 'Models'):
-        os.makedirs(OUTPUTDIR + os.sep + 'Models')
+    model_name = OUTPUTDIR + os.sep + f'fold_{fold+1}.pt'
 
     # Print split information:
     print(f'[INFO   ] Total Number of graphs: {len(train_ids)+len(val_ids)+len(test_indexes)}')
@@ -440,7 +408,6 @@ for fold, (train_ids, val_ids) in enumerate(kfold.split(training_set,training_se
     model = BitterGCN(train_dataset.num_node_features - NUM_REC, train_dataset.num_edge_features)
 
     # Define loss function and optimizer
-    #weights = torch.tensor([0.64,2.26])
     model.criterion = torch.nn.CrossEntropyLoss(weight=weights)
     optimizer = torch.optim.Adam(model.parameters(), lr=LR, weight_decay=WD)
 
@@ -495,8 +462,6 @@ for fold, (train_ids, val_ids) in enumerate(kfold.split(training_set,training_se
         for data in loader:
             data = data.to(device)
             output = model(data.x, data.edge_index, data.edge_attr, data.batch)
-            # _, pred = torch.max(output,dim=1)
-            # correct += int((pred == data.y).sum())
             if data.num_graphs > 1:
                 loss = model.criterion(output, data.y.type(torch.LongTensor).to(device))
             else:
@@ -551,12 +516,6 @@ for fold, (train_ids, val_ids) in enumerate(kfold.split(training_set,training_se
         del data
     train_probs = np.concatenate(train_probs)
     y_train = np.concatenate(y_train)
-    # Plot the roc curve for training:
-    if t_auc_value > 0.55:
-        tpr_points = np.interp(fpr_points, t_fpr, t_tpr)
-        tpr_train.append(tpr_points)
-
-    train_aucs.append(t_auc_value)
     del y_train, train_probs
 
     y_val, probs = [], []
@@ -568,17 +527,13 @@ for fold, (train_ids, val_ids) in enumerate(kfold.split(training_set,training_se
         del data
     probs = np.concatenate(probs)
     y_val = np.concatenate(y_val)
-    # Plot the roc curve for validation:
-    if auc_value > 0.55:
-        tpr_points = np.interp(fpr_points, fpr, tpr)
-        tpr_val.append(tpr_points)
-    
+    fpr,tpr,auc_value,_ = get_rates(y_val,probs)
     aucs.append(auc_value)
-    
     del y_val, probs
     print(f'[INFO   ] Model {fold+1} saved.')
 
 aucs = np.array(aucs)
+
 # Remove non-learning folds
 train_aucs_clean = [i for i in train_aucs if i > 0.55]
 aucs_clean = [i for i in aucs.tolist() if i > 0.55]
@@ -591,10 +546,10 @@ end_time = time()
 print('[INFO   ] Finished Training in {} minutes, num_workers={}'.format(round((end_time - start_time)/60,2), NUM_WORKERS) )
 # get the best model and load it:
 best_model_ids = np.argmax(aucs)
-best_model_name = OUTPUTDIR + os.sep + 'Models' + os.sep + f'fold_{best_model_ids+1}.pt'
+best_model_name = OUTPUTDIR + os.sep + f'fold_{best_model_ids+1}.pt'
 model.load_state_dict(torch.load(best_model_name))
 model.to(device)
-os.rename(OUTPUTDIR + os.sep + 'Models' + os.sep + f'fold_{best_model_ids+1}.pt', OUTPUTDIR + os.sep + 'Models' + os.sep + f'fold_{best_model_ids+1}_BEST.pt')
+os.rename(OUTPUTDIR + os.sep + f'fold_{best_model_ids+1}.pt', OUTPUTDIR + os.sep + f'fold_{best_model_ids+1}_BEST.pt')
 print(f'[INFO   ] Best Model is at fold {best_model_ids+1}')
 
 # Evaluate the model on the test set:
@@ -613,3 +568,4 @@ for data in test_loader:
 probs = np.concatenate(probs)
 y_test = np.concatenate(y_test)
 y_pred = np.concatenate(y_pred)
+print('[DONE   ] Model trained. All folds were saved to "Models" folder')
