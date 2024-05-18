@@ -3,30 +3,21 @@ pd.options.mode.chained_assignment = None
 
 from warnings import simplefilter
 simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
+simplefilter(action='ignore', category=FutureWarning)
+
 from scipy.cluster.hierarchy import ClusterWarning
-from warnings import simplefilter
 simplefilter("ignore", ClusterWarning)
 
 import numpy as np
 import matplotlib.pyplot as plt
-%matplotlib inline
 from Virtuous import Calc_fps, Calc_Mordred
 
 from catboost import CatBoostClassifier
 
-from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.cluster import AgglomerativeClustering
-#from sklearn.feature_selection import SequentialFeatureSelector
 from sklearn.model_selection import StratifiedKFold, train_test_split
 
-import matplotlib as mpl
-mpl.rcParams['font.size'] = 10
-mpl.rcParams['legend.fontsize'] = 10
-mpl.rcParams['axes.labelsize'] = 10
-mpl.rcParams['savefig.dpi'] = 600
-mpl.rcParams['legend.frameon'] = False
-
-from sklearn.metrics import roc_curve, auc, silhouette_score, RocCurveDisplay, average_precision_score, precision_recall_curve, classification_report
+from sklearn.metrics import roc_curve, auc, silhouette_score
 NUM_REC = 22
 PATH = f'../data/dataset.csv'
 
@@ -93,10 +84,10 @@ ndx = df.index.format()[:]
 # Fingerprints
 def Calc_MFps():
     try:
-        fps_df = pd.read_csv(f'{PATH.split(".c")[0]}_fps.csv', header=0, index_col=0)
+        fps_df = pd.read_csv(f'./src/TML_data_fps.csv', header=0, index_col=0)
             
     except FileNotFoundError:
-        print("Precalculated fingerprints file not found. Calculating Morgan fingerprints. This will take a while...")
+        print("[INFO   ] Precalculated fingerprints file not found. Calculating Morgan fingerprints. This will take a while...")
         fps_df = df
         for col in fps_df.columns:
             fps_df = fps_df.drop(col,axis=1)
@@ -111,10 +102,10 @@ def Calc_MFps():
 # Mordred
 def Calc_mord(norm=True):
     try:
-        mord_df = pd.read_csv(f'{PATH.split(".c")[0]}_mord.csv', header=0, index_col=0)
+        mord_df = pd.read_csv(f'./src/TML_data_mord.csv', header=0, index_col=0)
             
     except FileNotFoundError:
-        print("Precalculated descriptors file not found. Calculating Mordred descriptors. This will take a while...")
+        print("[INFO   ] Precalculated descriptors file not found. Calculating Mordred descriptors. This will take a while...")
         mord_df = df
         for col in mord_df.columns:
             mord_df = mord_df.drop(col,axis=1)
@@ -152,32 +143,29 @@ def Cluster(tanimoto_matrix):
             silhouette_avg = silhouette_score(tanimoto_matrix, labels, metric='precomputed')
         
         silhouette_lists.append(silhouette_avg)
-    print(silhouette_lists)
     best_n_clusters = range_n_clusters[np.argmax(silhouette_lists)]
 
     # Apply Agglomerative clustering with best n_clusters for receptor
     aggls = AgglomerativeClustering(n_clusters=best_n_clusters, metric='precomputed', linkage='complete')
     aggls = aggls.fit(tanimoto_matrix)
     labels = aggls.labels_
-    print(labels)
-    print(len(labels))
     return labels
 
 def Get_tanimoto_matrix(df):
     grp_ndx = df.index.format()[:]
     mol_fps = [Calc_fps(mol,1024,2) for mol in grp_ndx]
     try:
-        tanimoto_matrix = np.loadtxt(f'src/tanimoto_simmat_tot.txt')
+        tanimoto_matrix = np.loadtxt(f'./src/tanimoto_simmat_tot.txt')
     except OSError:
         # Initialize tanimoto matrix:
-        print("Calculating Tanimoto similarity matrices for whole dataset of ligands. This will take a while...")
+        print("[INFO   ] Calculating Tanimoto similarity matrices for whole dataset of ligands. This will take a while...")
         tanimoto_matrix = np.zeros((len(mol_fps),len(mol_fps)))
         # Iterate over all pairs of fingerprints and calculate the tanimoto similarity using the helper function:
         for i in range(len(mol_fps)):
             for j in range(len(mol_fps)):
                 tanimoto_matrix[i,j] = tanimoto_distance(mol_fps[i],mol_fps[j])
-        print(f"    Total Tanimoto simmat saved")
-        np.savetxt(f'src/tanimoto_simmat_tot.txt',tanimoto_matrix)
+        print(f"[INFO   ] Total Tanimoto simmat saved")
+        np.savetxt(f'./src/tanimoto_simmat_tot.txt',tanimoto_matrix)
     
     return tanimoto_matrix
 
@@ -234,6 +222,7 @@ def Get_model(n_iter, lr):
                             )
 
     return model
+
 def get_rates(y_test,probs):
     fpr, tpr, thresholds = roc_curve(y_test, probs, drop_intermediate=False)
     auc_value = auc(fpr,tpr)
@@ -244,32 +233,21 @@ def get_rates(y_test,probs):
 def skf_crossval(x, y, ax):
     n_fold = 10
     skf = StratifiedKFold(n_splits=n_fold, shuffle=True, random_state=42)
-    tprs = []
     aucs = []
     models = []
-    mean_fpr = np.linspace(0, 1, 500)
-    fpr_points = np.linspace(0,1,500)
     for fold, (train, val) in enumerate(skf.split(x, y)):
         model_cv = Get_model(1000,0.1)
         model_cv.fit(x.iloc[train], y.iloc[train])
         probs = model_cv.predict_proba(x.iloc[val])[:,1]
         fpr, tpr, auc_value, _ = get_rates(y.iloc[val],probs)
-        interp_tpr = np.interp(mean_fpr, fpr, tpr)
-        interp_tpr[0] = 0.0
-        tprs.append(interp_tpr)
         aucs.append(auc_value)
         models.append(model_cv)
-
-    mean_tpr = np.mean(tprs, axis=0)
-    std_tpr = np.std(tprs, axis=0)
-    mean_auc = np.mean(aucs)
-    std_auc = np.std(aucs)
     
     best_model = models[np.argmax(aucs)]
     return best_model
 
 # Preparing pairs dataset
-print('Initializing pairs datasets')
+print('[INFO   ] Initializing pairs dataset')
 fps_df = Calc_MFps()
 fps_df = fps_df.loc[:, fps_df.any()]
 mord_df = Calc_mord()
@@ -284,12 +262,12 @@ encoded = pd.get_dummies(pairs_df['receptor']).astype(int)
 pairs_df = pd.concat([pairs_df, encoded], axis=1)
 
 # Clustered division on train and test set
-print('Generating training and test with clustering...')
+print('[INFO   ] Generating training and test with clustering')
 x_train, x_test, y_train, y_test = clust_train_test_split(pairs_df)
 
 import ast
 nf = 17
-selectedfeatures_df = pd.read_csv('ModelSelection_MC/LB_Whole_22_sel_feature_per_iter.csv', header=0, index_col=0)
+selectedfeatures_df = pd.read_csv('./src/TML_sel_feature_per_iter.csv', header=0, index_col=0)
 selected_columns = selectedfeatures_df.loc[selectedfeatures_df['n_selected_features'] == nf, 'selected_features'].values[0]
 selected_columns = ast.literal_eval(selected_columns)
 
@@ -306,9 +284,10 @@ x_test = pd.concat([x_test_fs_1, x_test_fs_2], axis=1)
 fig, axes = plt.subplots(figsize=(8/2.54, 8/2.54))
 
 # Cross Validation of training set
-print('Cross-Validation on training set with Stratified KFold...')
+print('[INFO   ] Cross-Validation on training set with Stratified KFold')
 best_model = skf_crossval(x_train,y_train,axes)
 
 import pickle
-with open('src/new_TML_model.pkl', 'wb') as f:
+with open('new_TML_model.pkl', 'wb') as f:
      pickle.dump(best_model, f)
+print('[DONE   ] Model trained. Best Model saved as "new_TML_model.pkl"')
