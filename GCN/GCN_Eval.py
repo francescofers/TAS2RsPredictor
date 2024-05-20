@@ -15,7 +15,6 @@ import matplotlib
 import matplotlib.cm as cm
 import os
 from torch_geometric.data import InMemoryDataset
-from torch_geometric.loader import DataLoader
 import torch
 import torch.nn.functional as F
 from torch_geometric.nn import global_mean_pool, GATv2Conv
@@ -35,7 +34,7 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 # What to investigate?
-PATH = '../data/test_gradcam.txt' #'PATH/TO/SMILES/FILE.txt'
+PATH = '../data/test.txt' #'PATH/TO/SMILES/FILE.txt'
 
 # Overrides naming of molecules as molecule_N, if False the standardized SMILES will be used
 NAME_OVERRIDE = False
