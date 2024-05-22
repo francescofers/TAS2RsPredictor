@@ -351,7 +351,7 @@ def get_rates(y_test,probs):
 dataset = MolDataset(root='./src/train')
 
 NUM_REC = 22
-N_EPOCHS = 1#200
+N_EPOCHS = 200
 LR = 0.0005
 REDUCE_LR_ON_PLATEAU = True
 BATCH_SIZE = 16
