@@ -17,7 +17,7 @@ conda activate TAS2RPred
 
 3. Install the required packages
 ```
-pip install -r requirements.txt
+conda install --yes --file requirements.txt
 ```
 
 ## Running the training and evaluation
