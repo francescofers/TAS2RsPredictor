@@ -1,5 +1,4 @@
 # TAS2RsPredictor
----
 
 Both the models take as input a .txt file containing the SMILES of the query molecules
 Change the PATH variable in the evaluation scripts to input your own SMILES
