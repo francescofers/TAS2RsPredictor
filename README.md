@@ -7,7 +7,7 @@ Change the PATH variable in the evaluation scripts to input your own SMILES.
 
 1. Create a new conda environment
 ```
-conda create -n TAS2RPred python=3.9 pip
+conda create -n TAS2RPred python=3.9
 ```
 
 2. Activate the environment
