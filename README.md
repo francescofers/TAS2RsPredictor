@@ -1,7 +1,7 @@
 # TAS2RsPredictor
 
-Both the models take as input a .txt file containing the SMILES of the query molecules
-Change the PATH variable in the evaluation scripts to input your own SMILES
+Both the models take as input a .txt file containing the SMILES of the query molecules.
+Change the PATH variable in the evaluation scripts to input your own SMILES.
 
 ## Setting up the environment
 
@@ -52,4 +52,4 @@ python GCN/GCN_Eval.py
 
 ---
 
-Example Notebooks are available in both TML and GCN directory
+Example Notebooks are available in both TML and GCN directory.
