@@ -20,7 +20,7 @@ conda activate TAS2RPred
 pip install -r requirements.txt
 ```
 
-## Running the training scripts
+## Running the training and evaluation scripts
 
 
 ### TML model
