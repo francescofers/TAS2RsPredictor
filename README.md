@@ -15,7 +15,7 @@ conda create -n TAS2RPred python=3.9 pip
 conda activate TAS2RPred
 ```
 
-3. Install the reuqired packages
+3. Install the required packages
 ```
 pip install -r requirements.txt
 ```
@@ -25,33 +25,30 @@ pip install -r requirements.txt
 
 ### TML model
 
-1. Training the Traditional Machine Learning model
+1. Train the Traditional Machine Learning model
 
 ```
 python TML/TML_Train.py
 ```
 
-2. Evaluation
+2. Carry out the classification task with the trained Traditional Machine Learning model
 
 ```
 python TML/TML_Eval.py
 ```
 
-Change the PATH variable in evaluation scripts to input your own SMILES
-
 ### GCN model
 
-1. Training
+1. Train the Graph Convolutional Neural Network model
 
 ```
 python GCN/GCN_Train.py
 ```
 
-2. Evaluation
+2. Carry out the classification task with the trained Convolutional Neural Network model
 ```
 python GCN/GCN_Eval.py
 ```
-
 
 ---
 
