@@ -33,8 +33,13 @@ import shutil
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-# What to investigate?
-PATH = '../data/test.txt' #'PATH/TO/SMILES/FILE.txt'
+# setting the paths
+code_path = os.path.dirname(os.path.realpath(__file__))
+root_path = os.path.dirname(code_path)
+data_path = os.path.join(root_path, 'data')
+src_path = os.path.join(code_path, 'src')
+
+PATH = os.path.join(data_path, 'test.txt') #'PATH/TO/SMILES/FILE.txt'
 
 # Overrides naming of molecules as molecule_N, if False the standardized SMILES will be used
 NAME_OVERRIDE = False
@@ -46,12 +51,14 @@ PLOT_UGRADCAM = False
 GT = True
 
 # Delete files from previous runs
-if os.path.exists('./src/eval/processed'):
-    shutil.rmtree('./src/eval/processed')
-os.makedirs('./src/eval/processed')
-if os.path.exists('./src/eval/raw'):
-    shutil.rmtree('./src/eval/raw')
-os.makedirs('./src/eval/raw')
+processed_folder = os.path.join(src_path, 'eval', 'processed')
+raw_folder = os.path.join(src_path, 'eval', 'raw')
+if os.path.exists(processed_folder):
+    shutil.rmtree(processed_folder)
+os.makedirs(processed_folder)
+if os.path.exists(raw_folder):
+    shutil.rmtree(raw_folder)
+os.makedirs(raw_folder)
 
 # Load SMILES to predict
 with open(PATH) as f:
@@ -74,7 +81,7 @@ molecules = Std(input_molecules)
 
 # write a file of name Input_data.csv in raw
 # the format is ready to be predicted by the model
-with open('./src/eval/raw/Input_data.csv', 'w') as f:
+with open(os.path.join(raw_folder, 'Input_data.csv'), 'w') as f:
     f.write(',1,3,4,5,7,8,9,10,13,14,16,38,39,40,41,42,43,44,46,47,49,50\n')
     recs = np.zeros(22,dtype=int)
     rec2idx = {'1':0,'3':1,'4':2,'5':3,'7':4,'8':5,'9':6,'10':7,'13':8,'14':9,
@@ -189,7 +196,7 @@ class MolDataset_exp(InMemoryDataset):
         # Read the input data (already in the format for prediction)
         data = pd.read_csv(self.raw_paths[0],index_col=0)
 
-        min_max = pd.read_csv('src/min_max.csv',index_col=0,header=0)
+        min_max = pd.read_csv(os.path.join(src_path, 'min_max.csv'),index_col=0,header=0)
         min_f = min_max.iloc[0, :].values.tolist()
         max_f = min_max.iloc[1, :].values.tolist()
         data_list = []
@@ -352,10 +359,10 @@ def plot_on_mol(mol,name,receptor,pred,activations, gradients):
 
 b_s = 22
 
-data = MolDataset_exp(root='./src/eval')
+data = MolDataset_exp(root=os.path.join(src_path, 'eval'))
 test_loader =  DataLoader(data, batch_size=b_s, shuffle=False, num_workers=0, persistent_workers=False)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-best_model = './src/GCN_model.pt'
+best_model = os.path.join(src_path, 'GCN_model.pt')
 model = BitterGCN(data.num_node_features - 22, data.num_edge_features)
 model.load_state_dict(torch.load(best_model,map_location=torch.device('cpu')),strict=False)
 model = model.to(device)
@@ -415,7 +422,7 @@ if GT:
     unk = ['Unknown'] * len(molecules)
     final_results_df.insert(loc=0, column='Ground Truth', value=unk)
     # Importing dataset for checks
-    tdf = pd.read_csv('../data/dataset.csv', header=0, index_col=0)
+    tdf = pd.read_csv(os.path.join(data_path, 'dataset.csv'), header=0, index_col=0)
     tdf.columns = tdf.columns.astype(int)
 
     # Check if input smiles are already present in ground truth dataset
@@ -434,7 +441,7 @@ if GT:
     final_results_df.update(std_fullyknown_smiles)
 
 # CHECK if in Applicability Domain
-AD_file = './src/AD.pkl'
+AD_file = os.path.join(src_path, 'AD.pkl')
 check_AD = [TestAD(smi, filename=AD_file, verbose = False, sim_threshold=0.2, neighbors = 5, metric = "tanimoto") for smi in molecules]
 test       = [i[0] for i in check_AD]
 final_results_df.insert(loc=0, column='Check AD', value=test)
