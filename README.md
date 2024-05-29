@@ -71,6 +71,11 @@ pip install git+https://github.com/c-feldmann/rdkit_heatmaps
 
 ## Running the training and evaluation
 
+### Clone the GitHub Repository
+
+```
+git clone https://github.com/francescofers/TAS2RsPredictor
+```
 
 ### TML model
 
