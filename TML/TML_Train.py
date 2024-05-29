@@ -9,6 +9,7 @@ from scipy.cluster.hierarchy import ClusterWarning
 simplefilter("ignore", ClusterWarning)
 
 import numpy as np
+import os
 import matplotlib.pyplot as plt
 from Virtuous import Calc_fps, Calc_Mordred
 
@@ -19,7 +20,15 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 
 from sklearn.metrics import roc_curve, auc, silhouette_score
 NUM_REC = 22
-PATH = f'../data/dataset.csv'
+
+# setting the paths
+code_path = os.path.dirname(os.path.realpath(__file__))
+root_path = os.path.dirname(code_path)
+data_path = os.path.join(root_path, 'data')
+src_path = os.path.join(code_path, 'src')
+PATH = os.path.join(data_path, 'dataset.csv') #'PATH/TO/dataset.csv'
+
+#PATH = f'../data/dataset.csv'
 
 
 # Importing the dataset
@@ -84,7 +93,8 @@ ndx = df.index.format()[:]
 # Fingerprints
 def Calc_MFps():
     try:
-        fps_df = pd.read_csv(f'./src/TML_data_fps.csv', header=0, index_col=0)
+        fps_df = pd.read_csv(os.path.join(src_path,'TML_data_fps.csv'), header=0, index_col=0)
+        print ("[INFO   ] Precalculated fingerprints file found.")
             
     except FileNotFoundError:
         print("[INFO   ] Precalculated fingerprints file not found. Calculating Morgan fingerprints. This will take a while...")
@@ -102,8 +112,9 @@ def Calc_MFps():
 # Mordred
 def Calc_mord(norm=True):
     try:
-        mord_df = pd.read_csv(f'./src/TML_data_mord.csv', header=0, index_col=0)
-            
+        mord_df = pd.read_csv(os.path.join(src_path,'TML_data_mord.csv'), header=0, index_col=0)
+        print ("[INFO   ] Precalculated descriptors file found.")
+
     except FileNotFoundError:
         print("[INFO   ] Precalculated descriptors file not found. Calculating Mordred descriptors. This will take a while...")
         mord_df = df
@@ -155,7 +166,8 @@ def Get_tanimoto_matrix(df):
     grp_ndx = df.index.format()[:]
     mol_fps = [Calc_fps(mol,1024,2) for mol in grp_ndx]
     try:
-        tanimoto_matrix = np.loadtxt(f'./src/tanimoto_simmat_tot.txt')
+        tanimoto_matrix = np.loadtxt(os.path.join(src_path,'tanimoto_simmat_tot.txt'))
+        print("[INFO   ] Precalculated Tanimoto similarity matrix found.")
     except OSError:
         # Initialize tanimoto matrix:
         print("[INFO   ] Calculating Tanimoto similarity matrices for whole dataset of ligands. This will take a while...")
@@ -165,7 +177,7 @@ def Get_tanimoto_matrix(df):
             for j in range(len(mol_fps)):
                 tanimoto_matrix[i,j] = tanimoto_distance(mol_fps[i],mol_fps[j])
         print(f"[INFO   ] Total Tanimoto simmat saved")
-        np.savetxt(f'./src/tanimoto_simmat_tot.txt',tanimoto_matrix)
+        np.savetxt(os.path.join(src_path,'tanimoto_simmat_tot.txt'),tanimoto_matrix)
     
     return tanimoto_matrix
 
@@ -267,7 +279,7 @@ x_train, x_test, y_train, y_test = clust_train_test_split(pairs_df)
 
 import ast
 nf = 17
-selectedfeatures_df = pd.read_csv('./src/TML_sel_feature_per_iter.csv', header=0, index_col=0)
+selectedfeatures_df = pd.read_csv(os.path.join(src_path,'TML_sel_feature_per_iter.csv'), header=0, index_col=0)
 selected_columns = selectedfeatures_df.loc[selectedfeatures_df['n_selected_features'] == nf, 'selected_features'].values[0]
 selected_columns = ast.literal_eval(selected_columns)
 
