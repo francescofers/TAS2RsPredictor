@@ -11,7 +11,6 @@ import os
 
 # setting the paths
 code_path = os.path.dirname(os.path.realpath(__file__))
-print (code_path)
 root_path = os.path.dirname(code_path)
 data_path = os.path.join(root_path, 'data')
 src_path = os.path.join(code_path, 'src')
