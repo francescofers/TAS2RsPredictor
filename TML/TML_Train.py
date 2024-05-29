@@ -28,9 +28,6 @@ data_path = os.path.join(root_path, 'data')
 src_path = os.path.join(code_path, 'src')
 PATH = os.path.join(data_path, 'dataset.csv') #'PATH/TO/dataset.csv'
 
-#PATH = f'../data/dataset.csv'
-
-
 # Importing the dataset
 df = pd.read_csv(PATH, header=0, index_col=0)
 
