@@ -5,22 +5,22 @@ Change the PATH variable in the evaluation scripts to input your own SMILES.
 
 ## Setting up the environment
 
-1. Create a new conda environment
+### 1. Create a new conda environment
 ```
 conda create -n TAS2RPred python=3.9
 ```
 
-2. Activate the environment
+### 2. Activate the environment
 ```
 conda activate TAS2RPred
 ```
 
-3. Install the basic packages
+### 3. Install the basic packages
 ```
 conda install --yes -c conda-forge pandas=2.1.3 scipy=1.11.4 matplotlib=3.8.2
 ```
 
-4. Install VIRTUOUS library dependecies
+### 4. Install VIRTUOUS library dependecies
 
 ChEMBL pipeline and RDKit
 ```
@@ -39,14 +39,14 @@ conda install --yes -c conda-forge tqdm=4.66.1 knnimpute=0.1.0 joblib=1.3.2 cyth
 
 ### TML packages
 
-5.a CatBoost
+### 5.a CatBoost
 ``` 
 conda install --yes -c conda-forge catboost=1.2.5
 ```
 
 ### GCN packages
 
-5.b Pytorch, PyG and rdkit_heatmaps
+### 5.b Pytorch, PyG and rdkit_heatmaps
 
 If CUDA is not available on your OS:
 ``` 
@@ -74,13 +74,13 @@ pip install git+https://github.com/c-feldmann/rdkit_heatmaps
 
 ### TML model
 
-1. Train the Traditional Machine Learning model
+### 1. Train the Traditional Machine Learning model
 
 ```
 python TML/TML_Train.py
 ```
 
-2. Carry out the classification task with the trained Traditional Machine Learning model
+### 2. Carry out the classification task with the trained Traditional Machine Learning model
 
 ```
 python TML/TML_Eval.py
@@ -88,13 +88,13 @@ python TML/TML_Eval.py
 
 ### GCN model
 
-1. Train the Graph Convolutional Neural Network model
+### 1. Train the Graph Convolutional Neural Network model
 
 ```
 python GCN/GCN_Train.py
 ```
 
-2. Carry out the classification task with the trained Convolutional Neural Network model
+### 2. Carry out the classification task with the trained Convolutional Neural Network model
 ```
 python GCN/GCN_Eval.py
 ```
