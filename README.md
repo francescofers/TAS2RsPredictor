@@ -35,6 +35,7 @@ conda install --yes -c mordred-descriptor mordred=1.2.0
 Others
 ``` 
 conda install --yes -c conda-forge tqdm=4.66.1 knnimpute=0.1.0 joblib=1.3.2 cython=3.0.10 scikit-learn=1.3.2 xmltodict=0.13.0
+pip install pyenchant
 ```
 
 ### TML packages
