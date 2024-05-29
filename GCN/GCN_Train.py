@@ -351,10 +351,16 @@ def get_rates(y_test,probs):
     optimal_threshold = thresholds[optimal_idx]
     return fpr,tpr,auc_value,optimal_threshold
 
-dataset = MolDataset(root='./src/train')
+# setting the paths
+code_path = os.path.dirname(os.path.realpath(__file__))
+root_path = os.path.dirname(code_path)
+data_path = os.path.join(root_path, 'data')
+src_path = os.path.join(code_path, 'src')
+
+dataset = MolDataset(root=os.path.join(src_path, 'train'))
 
 NUM_REC = 22
-N_EPOCHS = 200
+N_EPOCHS = 5 #200
 LR = 0.0005
 REDUCE_LR_ON_PLATEAU = True
 BATCH_SIZE = 16
