@@ -24,12 +24,12 @@ conda install --yes -c conda-forge pandas=2.1.3 scipy=1.11.4 matplotlib=3.8.2
 
 ChEMBL pipeline and RDKit
 ```
-conda install --yes -c conda-forge rdkit chembl_structure_pipeline
+conda install --yes -c conda-forge rdkit=2023.09.4 chembl_structure_pipeline=1.2.0
 ```
 
 Mordred
 ``` 
-conda install --yes -c mordred-descriptor mordred
+conda install --yes -c mordred-descriptor mordred=1.2.0
 ```
 
 Others
