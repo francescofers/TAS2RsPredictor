@@ -7,8 +7,16 @@ import ast
 pd.options.mode.chained_assignment = None
 import numpy as np
 from Virtuous import Calc_Mordred, ReadMol, Standardize, TestAD 
+import os
 
-PATH = '../data/test.txt' #'PATH/TO/SMILES/FILE.txt'
+# setting the paths
+code_path = os.path.dirname(os.path.realpath(__file__))
+print (code_path)
+root_path = os.path.dirname(code_path)
+data_path = os.path.join(root_path, 'data')
+src_path = os.path.join(code_path, 'src')
+PATH = os.path.join(data_path, 'test.txt') #'PATH/TO/SMILES/FILE.txt'
+
 
 GT = True # TRUE for Ground Truth Check
 
@@ -17,18 +25,18 @@ with open(PATH) as f:
     smiles = f.read().splitlines()
 
 # Applicability Domain file path
-AD_file = './src/AD.pkl'
+AD_file = os.path.join(src_path, 'AD.pkl')
 
 # Load the final model
-model = pickle.load(open('./src/TML_model.pkl','rb'))
+model = pickle.load(open(os.path.join(src_path, 'TML_model.pkl'),'rb'))
 
 # Importing min and max value to min-max Mordred descriptors
-min_max = pd.read_csv('./src/min_max_mord_fs.csv',header=0,index_col=0)
-selected_columns = pd.read_csv('./src/TML_sel_feature_per_iter.csv',header=0).iloc[131,3]
+min_max = pd.read_csv(os.path.join(src_path, 'min_max_mord_fs.csv'),header=0,index_col=0)
+selected_columns = pd.read_csv(os.path.join(src_path, 'TML_sel_feature_per_iter.csv'),header=0).iloc[131,3]
 selected_columns = ast.literal_eval(selected_columns)
 
 # Importing dataset for checks
-tdf = pd.read_csv('../data/dataset.csv', header=0, index_col=0)
+tdf = pd.read_csv(os.path.join(data_path, 'dataset.csv'), header=0, index_col=0)
 tdf.columns = tdf.columns.astype(int)
 
 # Receptors that the model is trained to evaluate over
