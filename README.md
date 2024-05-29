@@ -58,7 +58,7 @@ If your OS supports CUDA:
 ```
 conda install --yes pytorch torchvision torchaudio pytorch-cuda=<CUDA_VERSION> -c pytorch
 ```
-Replace <b><CUDA_VERSION></b> with your installed CUDA driver version number
+Replace <b><CUDA_VERSION></b> with your installed CUDA driver version number (e.g. pytorch-cuda=12)
 
 Pyg
 ```
