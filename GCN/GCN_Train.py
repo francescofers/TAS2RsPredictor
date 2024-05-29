@@ -20,6 +20,9 @@ import os, shutil
 from time import time
 from sklearn.metrics import pairwise_distances, roc_curve, auc
 
+import warnings
+warnings.simplefilter("ignore", UserWarning)
+
 class MolDataset(InMemoryDataset):
     """Class that defines the dataset for the model."""
     def __init__(self, root="", transform=None, pre_transform=None):
