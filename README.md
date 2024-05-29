@@ -15,9 +15,58 @@ conda create -n TAS2RPred python=3.9
 conda activate TAS2RPred
 ```
 
-3. Install the required packages
+3. Install the basic packages
 ```
-conda install --yes --file requirements.txt
+conda install --yes -c conda-forge pandas=2.1.3 scipy=1.11.4 matplotlib=3.8.2
+```
+
+4. Install VIRTUOUS library dependecies
+
+ChEMBL pipeline and RDKit
+```
+conda install --yes -c conda-forge rdkit chembl_structure_pipeline
+```
+
+Mordred
+``` 
+conda install --yes -c mordred-descriptor mordred
+```
+
+Others
+``` 
+conda install --yes -c conda-forge tqdm=4.66.1 knnimpute=0.1.0 joblib=1.3.2 cython=3.0.10 scikit-learn=1.3.2 xmltodict=0.13.0
+```
+
+### TML packages
+
+5.a CatBoost
+``` 
+conda install --yes -c conda-forge catboost=1.2.5
+```
+
+### GCN packages
+
+5.b Pytorch, PyG and rdkit_heatmaps
+
+If CUDA is not available on your OS:
+``` 
+conda install --yes pytorch::pytorch torchvision torchaudio -c pytorch
+```
+
+If your OS supports CUDA:
+```
+conda install --yes pytorch torchvision torchaudio pytorch-cuda=<CUDA_VERSION> -c pytorch -c nvidiach
+```
+Replace <b><CUDA_VERSION></b> with your installed CUDA driver version number
+
+Pyg
+```
+conda install --yes pyg -c pyg
+```
+
+rdkit_heatmaps
+```
+pip install git+https://github.com/c-feldmann/rdkit_heatmaps
 ```
 
 ## Running the training and evaluation
