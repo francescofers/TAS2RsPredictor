@@ -66,7 +66,7 @@ conda install --yes pyg -c pyg
 
 NetworkX
 ```
-conda install --yes -c conda-forge networkx
+conda install --yes -c conda-forge networkx=3.2.1
 ```
 
 rdkit_heatmaps
