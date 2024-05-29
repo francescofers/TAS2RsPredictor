@@ -46,7 +46,7 @@ conda install --yes -c conda-forge catboost=1.2.5
 
 ### GCN packages
 
-### 5.b Pytorch, PyG and rdkit_heatmaps
+### 5.b Pytorch, PyG, NetworkX and rdkit_heatmaps
 
 If CUDA is not available on your OS:
 ``` 
@@ -62,6 +62,11 @@ Replace <b><CUDA_VERSION></b> with your installed CUDA driver version number
 Pyg
 ```
 conda install --yes pyg -c pyg
+```
+
+NetworkX
+```
+conda install --yes -c conda-forge networkx
 ```
 
 rdkit_heatmaps
