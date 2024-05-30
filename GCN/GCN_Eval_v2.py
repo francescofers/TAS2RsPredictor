@@ -1,3 +1,24 @@
+"""
+Python code to predict the association between bitter molecules and TAS2Rs using a Traditional Machine Learning (TML) model.
+
+The code is part of the Virtuous package and is used to evaluate the association between bitter molecules and TAS2Rs using a TML model. 
+The code takes as input a SMILES string or a file containing SMILES strings and returns the predicted association between the input molecules and the TAS2Rs. 
+
+----------------
+Acknowledgements
+This project has received funding from the European Union’s Horizon 2020 research and innovation programme under the Marie Skłodowska-Curie grant agreement Action (GA No. 872181)
+----------------
+
+----------------
+Version history:
+- Version 1.0 - 30/05/2024
+----------------
+
+"""
+
+__version__ = '1.0'
+__author__ = 'Francesco Ferri, Marco Cannariato, Lorenzo Pallante'
+
 import pandas as pd
 pd.options.mode.chained_assignment = None
 import numpy as np
@@ -30,6 +51,8 @@ from rdkit.Chem import Draw
 from rdkit.Chem.rdmolops import RemoveAllHs
 from Virtuous import TestAD
 import shutil
+import argparse
+import pyfiglet
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -453,3 +476,78 @@ final_results_df = final_results_df.reset_index(drop=True)
 
 final_results_df.to_csv("GCN_output.csv", sep=",")
 print('[DONE   ] Prediction and explanation tasks completed.')
+
+
+##########
+# NEW PART TO BE CHECKED
+
+
+def code_name():
+    # print the name of the code "TAS2R Predictor" using ASCII art fun
+    code_title = pyfiglet.figlet_format("TAS2R Predictor")
+    # subtitle in a smaller font
+    code_subtitle = "Code to predict the association between bitter molecules and TAS2Rs using a Graph Convolutional Network (GCN) model."
+    
+    print ("\n")
+    print(code_title)
+    print(code_subtitle)
+
+    # print authors and version
+    print ("\n")
+    print ("Version: " + __version__)
+    print ("Authors: " + __author__ )
+    print ("\n")
+
+
+if __name__ == '__main__':
+
+    # --- Parsing Input ---
+    parser = argparse.ArgumentParser(description=code_name(), )
+    # the user cannot provide both a compound and a file
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-c','--compound',help="query compound (allowed file types are SMILES, FASTA, Inchi, PDB, Sequence, Smarts, pubchem name)",default=None)
+    group.add_argument('-f','--file',help="text file containing the query molecules",default=None)
+    parser.add_argument('-t', '--type', help="type of the input file (SMILES, FASTA, Inchi, PDB, Sequence, Smarts, pubchem name). If not specified, an automatic recognition of the input format will be tried", default=None)
+    parser.add_argument('-d','--directory',help="name of the output directory",default=None)
+    parser.add_argument('-v','--verbose',help="Set verbose mode", default=False, action='store_true')
+    parser.add_argument('-g','--ground_truth',help="Set to TRUE if you want to check if the input SMILES are already present in the ground truth dataset", default=True, action='store_false')
+    args = parser.parse_args()
+
+    # Ground Truth Check - TRUE/FALSE - Default is TRUE
+    GT = args.ground_truth 
+    if args.verbose:
+        if GT:
+            print('[INFO  ] Ground Truth Check Enabled: Checking if the input SMILES are already present in the ground truth dataset')
+        else:
+            print('[INFO  ] Ground Truth Check Disabled: The input SMILES will be evaluated without checking if they are already present in the ground truth dataset')
+
+    # check if the input is a file or a single compound
+    if args.compound:
+        smiles = args.compound
+    elif args.file:
+        PATH = os.path.abspath(args.file)
+        with open(PATH) as f:
+            smiles = f.read().splitlines()
+    else:
+        print('[ERROR ] No input provided. Please provide a SMILES string or a file containing SMILES strings.')
+        exit()
+
+    # --- Evaluating SMILES ---
+    f_df = eval_smiles(smiles,ground_truth=GT, verbose=args.verbose)
+
+    # --- Saving the output ---
+    if args.directory:
+        if not os.path.exists(args.directory):
+            os.makedirs(args.directory)
+        output_path = os.path.abspath(args.directory)
+    else:
+        output_path = os.path.join(os.getcwd(), 'results')
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
+
+    f_df.to_csv(os.path.join(output_path, 'TML_output.csv'),sep=',')
+    print('[DONE  ] Prediction task completed.')
+
+    if args.verbose:
+        print(f"[INFO  ] Output saved in {output_path}/TML_output.csv\n\n")
+        print(f_df)
