@@ -251,10 +251,7 @@ if __name__ == '__main__':
         print('[ERROR ] No input provided. Please provide a SMILES string or a file containing SMILES strings.')
         exit()
 
-    # --- Evaluating SMILES ---
-    f_df = eval_smiles(smiles,ground_truth=GT, verbose=args.verbose)
-
-    # --- Saving the output ---
+    # check if the output directory is provided and if it exists
     if args.directory:
         if not os.path.exists(args.directory):
             os.makedirs(args.directory)
@@ -264,6 +261,8 @@ if __name__ == '__main__':
         if not os.path.exists(output_path):
             os.makedirs(output_path)
 
+    # --- Evaluating SMILES ---
+    f_df = eval_smiles(smiles,ground_truth=GT, verbose=args.verbose)
     f_df.to_csv(os.path.join(output_path, 'TML_output.csv'),sep=',')
     print('[DONE  ] Prediction task completed.')
 
