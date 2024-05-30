@@ -76,13 +76,14 @@ class MolDataset_exp(InMemoryDataset):
     data_path = os.path.join(root_path, 'data')
     src_path = os.path.join(code_path, 'src')
 
-    def __init__(self, root="", transform=None, pre_transform=None):
+    def __init__(self, root="", transform=None, pre_transform=None, verbose=False):
         self.node_attrs = ['mass','logP','mr','estate','asa','tpsa','partial_charge','degree','imp_val','nH','arom',
                            'tas1','tas3','tas4','tas5','tas7','tas8','tas9','tas10','tas13','tas14','tas16','tas38','tas39','tas40', 'tas41','tas42','tas43','tas44','tas46','tas47','tas49','tas50']
         self.num_rec = 22
         self.edge_attrs = ['is_single','is_double','is_triple','is_aromatic']
         super(MolDataset_exp, self).__init__(root, transform, pre_transform)
-        print("[INFO   ] Root directory of dataset is: ", self.root)
+        if verbose:
+            print("[INFO   ] Root directory of dataset is: ", self.root)
         self.data, self.slices = torch.load(self.processed_paths[0]) # This form is required by PyTorch Geometric with version < 2.4
         
     @property
