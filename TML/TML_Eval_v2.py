@@ -114,6 +114,8 @@ def eval_smiles(smiles, ground_truth=True, verbose=False):
         if len(std_fullyknown_smiles.index) == len(std_smiles):
             comp = ['Fully Known'] * len(std_fullyknown_smiles.index)
             std_fullyknown_smiles['Ground Truth'] = comp
+            print ('[INFO  ] All input SMILES are already present in the ground truth dataset and fully known')
+            print ('[INFO  ] Ground truth returned')
             return round(std_fullyknown_smiles,2)
     else:
         std_clean_smiles = std_smiles
