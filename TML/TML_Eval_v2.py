@@ -30,6 +30,8 @@ import numpy as np
 from Virtuous import Calc_Mordred, ReadMol, Standardize, TestAD 
 import os
 import argparse
+import pyfiglet
+
 
 # Defining functions
 def Std(input_smiles):
@@ -199,7 +201,6 @@ def eval_smiles(smiles, ground_truth=True, verbose=False):
 
 def code_name():
     # print the name of the code "TAS2R Predictor" using ASCII art fun
-    import pyfiglet
     code_title = pyfiglet.figlet_format("TAS2R Predictor")
     # subtitle in a smaller font
     code_subtitle = "Code to predict the association between bitter molecules and TAS2Rs using a Traditional Machine Learning (TML) model"
