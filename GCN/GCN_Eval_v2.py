@@ -56,40 +56,7 @@ import pyfiglet
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-# setting the paths
-code_path = os.path.dirname(os.path.realpath(__file__))
-root_path = os.path.dirname(code_path)
-data_path = os.path.join(root_path, 'data')
-src_path = os.path.join(code_path, 'src')
-
-PATH = os.path.join(data_path, 'test.txt') #'PATH/TO/SMILES/FILE.txt'
-
-# Overrides naming of molecules as molecule_N, if False the standardized SMILES will be used
-NAME_OVERRIDE = False
-
-# Activates plotting of explanations with UGrad-CAM
-PLOT_UGRADCAM = False
-
-# If TRUE checks if evaluated pairs have in-vitro verified data and overwrites prediction with Ground Truth
-GT = True
-
-# Delete files from previous runs
-processed_folder = os.path.join(src_path, 'eval', 'processed')
-raw_folder = os.path.join(src_path, 'eval', 'raw')
-if os.path.exists(processed_folder):
-    shutil.rmtree(processed_folder)
-os.makedirs(processed_folder)
-if os.path.exists(raw_folder):
-    shutil.rmtree(raw_folder)
-os.makedirs(raw_folder)
-
-# Load SMILES to predict
-with open(PATH) as f:
-    input_molecules = f.read().splitlines()
-
-# CHECK if only one smile was given instead of a list
-if type(input_molecules) != list:
-    input_molecules = [input_molecules]
+# Defining functions
 
 # Standardize molecules
 def Std(input_smiles):
@@ -100,24 +67,15 @@ def Std(input_smiles):
 
     return parent_smi
 
-molecules = Std(input_molecules)
-
-# write a file of name Input_data.csv in raw
-# the format is ready to be predicted by the model
-with open(os.path.join(raw_folder, 'Input_data.csv'), 'w') as f:
-    f.write(',1,3,4,5,7,8,9,10,13,14,16,38,39,40,41,42,43,44,46,47,49,50\n')
-    recs = np.zeros(22,dtype=int)
-    rec2idx = {'1':0,'3':1,'4':2,'5':3,'7':4,'8':5,'9':6,'10':7,'13':8,'14':9,
-               '16':10,'38':11,'39':12,'40':13,'41':14,'42':15,'43':16,'44':17,
-               '46':18,'47':19,'49':20,'50':21}
-    for m in molecules:
-        for r in range(22):
-            recs[r] = 1
-            f.write(m+','+','.join(recs.astype(str))+'\n')
-            recs[r] = 0
-
 class MolDataset_exp(InMemoryDataset):
     """Class that defines the dataset for the model."""
+
+    # setting the paths for the code, data and src folders
+    code_path = os.path.dirname(os.path.realpath(__file__))
+    root_path = os.path.dirname(code_path)
+    data_path = os.path.join(root_path, 'data')
+    src_path = os.path.join(code_path, 'src')
+
     def __init__(self, root="", transform=None, pre_transform=None):
         self.node_attrs = ['mass','logP','mr','estate','asa','tpsa','partial_charge','degree','imp_val','nH','arom',
                            'tas1','tas3','tas4','tas5','tas7','tas8','tas9','tas10','tas13','tas14','tas16','tas38','tas39','tas40', 'tas41','tas42','tas43','tas44','tas46','tas47','tas49','tas50']
@@ -218,6 +176,10 @@ class MolDataset_exp(InMemoryDataset):
 
         # Read the input data (already in the format for prediction)
         data = pd.read_csv(self.raw_paths[0],index_col=0)
+
+            # setting the paths for the code, data and src folders
+        code_path = os.path.dirname(os.path.realpath(__file__))
+        src_path = os.path.join(code_path, 'src')
 
         min_max = pd.read_csv(os.path.join(src_path, 'min_max.csv'),index_col=0,header=0)
         min_f = min_max.iloc[0, :].values.tolist()
@@ -380,106 +342,149 @@ def plot_on_mol(mol,name,receptor,pred,activations, gradients):
     img = transform2png(canvas.GetDrawingText())
     img.save(f'UGradCAM/{name}/{pred}/TAS2R{receptor}.png') 
 
-b_s = 22
+def eval_smiles_gcn(smiles, ground_truth=True, verbose=False, plot_ugradcam=False):
+    '''
+    Function to evaluate the input SMILES strings and return the predicted association between the input molecules and the TAS2Rs.
+    The function takes as input a list of SMILES strings and returns a dataframe with the predicted association between the input molecules and the TAS2Rs.
+    '''
 
-data = MolDataset_exp(root=os.path.join(src_path, 'eval'))
-test_loader =  DataLoader(data, batch_size=b_s, shuffle=False, num_workers=0, persistent_workers=False)
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-best_model = os.path.join(src_path, 'GCN_model.pt')
-model = BitterGCN(data.num_node_features - 22, data.num_edge_features)
-model.load_state_dict(torch.load(best_model,map_location=torch.device('cpu')),strict=False)
-model = model.to(device)
+    GT = ground_truth
+    PLOT_UGRADCAM = plot_ugradcam
+    # Overrides naming of molecules as molecule_N, if False the standardized SMILES will be used
+    NAME_OVERRIDE = False
 
-model.eval()
+    # setting the paths
+    code_path = os.path.dirname(os.path.realpath(__file__))
+    root_path = os.path.dirname(code_path)
+    data_path = os.path.join(root_path, 'data')
+    src_path = os.path.join(code_path, 'src')
 
-receptors = [1, 3, 4, 5, 7, 8, 9, 10, 13, 14, 16, 38, 39, 40, 41, 42, 43, 44, 46, 47, 49, 50]
+    # Delete files from previous runs
+    processed_folder = os.path.join(src_path, 'eval', 'processed')
+    raw_folder = os.path.join(src_path, 'eval', 'raw')
+    if os.path.exists(processed_folder):
+        shutil.rmtree(processed_folder)
+    os.makedirs(processed_folder)
+    if os.path.exists(raw_folder):
+        shutil.rmtree(raw_folder)
+    os.makedirs(raw_folder)
 
-# Create df for final predictions
-final_results_df = pd.DataFrame(np.zeros(shape=(len(molecules),len(receptors))) ,columns=receptors)
+    # CHECK if only one smile was given instead of a list
+    if type(smiles) != list:
+        smiles = [smiles]
 
-for nmol, data in enumerate(test_loader):
+    # Standardize molecules
+    molecules = Std(smiles)
 
-    # get the entry from the dataloader
-    data = data.to(device)
+    # write a file of name Input_data.csv in raw
+    # the format is ready to be predicted by the model
+    with open(os.path.join(raw_folder, 'Input_data.csv'), 'w') as f:
+        f.write(',1,3,4,5,7,8,9,10,13,14,16,38,39,40,41,42,43,44,46,47,49,50\n')
+        recs = np.zeros(22,dtype=int)
+        rec2idx = {'1':0,'3':1,'4':2,'5':3,'7':4,'8':5,'9':6,'10':7,'13':8,'14':9,
+                '16':10,'38':11,'39':12,'40':13,'41':14,'42':15,'43':16,'44':17,
+                '46':18,'47':19,'49':20,'50':21}
+        for m in molecules:
+            for r in range(22):
+                recs[r] = 1
+                f.write(m+','+','.join(recs.astype(str))+'\n')
+                recs[r] = 0
 
-    # get the most likely prediction of the model
-    output = model(data.x, data.edge_index, data.edge_attr, data.batch)
+    b_s = 22
 
-    output_prob = F.softmax(output, dim=1)
-    preds = output_prob.argmax(dim=1)
+    data = MolDataset_exp(root=os.path.join(src_path, 'eval'))
+    test_loader =  DataLoader(data, batch_size=b_s, shuffle=False, num_workers=0, persistent_workers=False)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    best_model = os.path.join(src_path, 'GCN_model.pt')
+    model = BitterGCN(data.num_node_features - 22, data.num_edge_features)
+    model.load_state_dict(torch.load(best_model,map_location=torch.device('cpu')),strict=False)
+    model = model.to(device)
 
-    if PLOT_UGRADCAM or len(input_molecules)==1:
-        print(f'[INFO   ] Plotting UGrad-CAMs for molecule #{nmol+1}')
+    model.eval()
 
-    for position, receptor  in enumerate(receptors):
-        # Retrieve the prediction per pair
-        pred = preds[position].item()
-        prob = output_prob[position,pred].item()
-        final_results_df.iloc[nmol,position] = output_prob[position,1].item()
-       
-        if NAME_OVERRIDE:
-            name = f'molecule_{nmol+1}'
-        else:
-            name = molecules[nmol]
+    receptors = [1, 3, 4, 5, 7, 8, 9, 10, 13, 14, 16, 38, 39, 40, 41, 42, 43, 44, 46, 47, 49, 50]
+
+    # Create df for final predictions
+    final_results_df = pd.DataFrame(np.zeros(shape=(len(molecules),len(receptors))) ,columns=receptors)
+
+    for nmol, data in enumerate(test_loader):
+
+        # get the entry from the dataloader
+        data = data.to(device)
+
+        # get the most likely prediction of the model
+        output = model(data.x, data.edge_index, data.edge_attr, data.batch)
+
+        output_prob = F.softmax(output, dim=1)
+        preds = output_prob.argmax(dim=1)
+
+        if PLOT_UGRADCAM or len(smiles)==1:
+            print(f'[INFO   ] Plotting UGrad-CAMs for molecule #{nmol+1}')
+
+        for position, receptor  in enumerate(receptors):
+            # Retrieve the prediction per pair
+            pred = preds[position].item()
+            prob = output_prob[position,pred].item()
+            final_results_df.iloc[nmol,position] = output_prob[position,1].item()
         
-        if PLOT_UGRADCAM or len(input_molecules)==1:
-            print(f'[INFO   ]   - TAS2R{receptor}')
-            # Get the gradient of the output with respect to the parameters of the model 
-            if position + 1 == len(receptors):
-                output[position,pred].backward()
+            if NAME_OVERRIDE:
+                name = f'molecule_{nmol+1}'
             else:
-                output[position,pred].backward(retain_graph=True)
+                name = molecules[nmol]
             
-            # pull the gradients out of the model
-            gradients = model.get_activations_gradient()
-            # get the activations of the last convolutional layer
-            activations = model.get_activations(data.x)
+            if PLOT_UGRADCAM or len(smiles)==1:
+                print(f'[INFO   ]   - TAS2R{receptor}')
+                # Get the gradient of the output with respect to the parameters of the model 
+                if position + 1 == len(receptors):
+                    output[position,pred].backward()
+                else:
+                    output[position,pred].backward(retain_graph=True)
+                
+                # pull the gradients out of the model
+                gradients = model.get_activations_gradient()
+                # get the activations of the last convolutional layer
+                activations = model.get_activations(data.x)
 
-            plot_on_mol(molecules[nmol],name,receptor,pred,activations,gradients)
+                plot_on_mol(molecules[nmol],name,receptor,pred,activations,gradients)
 
-final_results_df = final_results_df.round(decimals=2)
-final_results_df.index = molecules
-# CHECK IF ALREADY KNOWN / INCOMPLETE -> 1/0 on know and prediction on unknown
-# TO REMOVE THIS CHECK set ground_truth to FALSE
-if GT:
-    unk = ['Unknown'] * len(molecules)
-    final_results_df.insert(loc=0, column='Ground Truth', value=unk)
-    # Importing dataset for checks
-    tdf = pd.read_csv(os.path.join(data_path, 'dataset.csv'), header=0, index_col=0)
-    tdf.columns = tdf.columns.astype(int)
+    final_results_df = final_results_df.round(decimals=2)
+    final_results_df.index = molecules
+    # CHECK IF ALREADY KNOWN / INCOMPLETE -> 1/0 on know and prediction on unknown
+    # TO REMOVE THIS CHECK set ground_truth to FALSE
+    if GT:
+        unk = ['Unknown'] * len(molecules)
+        final_results_df.insert(loc=0, column='Ground Truth', value=unk)
+        # Importing dataset for checks
+        tdf = pd.read_csv(os.path.join(data_path, 'dataset.csv'), header=0, index_col=0)
+        tdf.columns = tdf.columns.astype(int)
 
-    # Check if input smiles are already present in ground truth dataset
-    # Discriminate between fully known pairs, incomplete pairs and unknown
-    std_known_smiles = tdf.loc[tdf.index.isin(molecules)]
-    std_incomplete_smiles = std_known_smiles[std_known_smiles.isna().any(axis=1)]
-    std_fullyknown_smiles = std_known_smiles.dropna(how='any')
+        # Check if input smiles are already present in ground truth dataset
+        # Discriminate between fully known pairs, incomplete pairs and unknown
+        std_known_smiles = tdf.loc[tdf.index.isin(molecules)]
+        std_incomplete_smiles = std_known_smiles[std_known_smiles.isna().any(axis=1)]
+        std_fullyknown_smiles = std_known_smiles.dropna(how='any')
 
-    inc = ['Partially Known'] * len(std_incomplete_smiles.index)
-    std_incomplete_smiles['Ground Truth'] = inc
+        inc = ['Partially Known'] * len(std_incomplete_smiles.index)
+        std_incomplete_smiles['Ground Truth'] = inc
 
-    known = ['Fully Known'] * len(std_fullyknown_smiles)
-    std_fullyknown_smiles['Ground Truth'] = known
+        known = ['Fully Known'] * len(std_fullyknown_smiles)
+        std_fullyknown_smiles['Ground Truth'] = known
 
-    final_results_df.update(std_incomplete_smiles)
-    final_results_df.update(std_fullyknown_smiles)
+        final_results_df.update(std_incomplete_smiles)
+        final_results_df.update(std_fullyknown_smiles)
 
-# CHECK if in Applicability Domain
-AD_file = os.path.join(src_path, 'AD.pkl')
-check_AD = [TestAD(smi, filename=AD_file, verbose = False, sim_threshold=0.2, neighbors = 5, metric = "tanimoto") for smi in molecules]
-test       = [i[0] for i in check_AD]
-final_results_df.insert(loc=0, column='Check AD', value=test)
+    # CHECK if in Applicability Domain
+    AD_file = os.path.join(src_path, 'AD.pkl')
+    check_AD = [TestAD(smi, filename=AD_file, verbose = False, sim_threshold=0.2, neighbors = 5, metric = "tanimoto") for smi in molecules]
+    test       = [i[0] for i in check_AD]
+    final_results_df.insert(loc=0, column='Check AD', value=test)
 
-col = final_results_df.pop('Ground Truth')
-final_results_df.insert(0, col.name, col)
-final_results_df.insert(loc=0, column='Standardized SMILES',value=final_results_df.index)
-final_results_df = final_results_df.reset_index(drop=True)
+    col = final_results_df.pop('Ground Truth')
+    final_results_df.insert(0, col.name, col)
+    final_results_df.insert(loc=0, column='Standardized SMILES',value=final_results_df.index)
+    final_results_df = final_results_df.reset_index(drop=True)
 
-final_results_df.to_csv("GCN_output.csv", sep=",")
-print('[DONE   ] Prediction and explanation tasks completed.')
-
-
-##########
-# NEW PART TO BE CHECKED
+    return final_results_df
 
 
 def code_name():
@@ -511,6 +516,7 @@ if __name__ == '__main__':
     parser.add_argument('-d','--directory',help="name of the output directory",default=None)
     parser.add_argument('-v','--verbose',help="Set verbose mode", default=False, action='store_true')
     parser.add_argument('-g','--ground_truth',help="Set to TRUE if you want to check if the input SMILES are already present in the ground truth dataset", default=True, action='store_false')
+    parser.add_argument('-p','--plot',help="Set to TRUE if you want to plot the UGrad-CAMs", default=False, action='store_true')
     args = parser.parse_args()
 
     # Ground Truth Check - TRUE/FALSE - Default is TRUE
@@ -521,6 +527,14 @@ if __name__ == '__main__':
         else:
             print('[INFO  ] Ground Truth Check Disabled: The input SMILES will be evaluated without checking if they are already present in the ground truth dataset')
 
+    # Plot UGrad-CAM - TRUE/FALSE - Default is FALSE
+    PLOT_UGRADCAM = args.plot
+    if args.verbose:
+        if PLOT_UGRADCAM:
+            print('[INFO  ] UGrad-CAM Plot Enabled: Plotting the UGrad-CAMs for the input SMILES')
+        else:
+            print('[INFO  ] UGrad-CAM Plot Disabled: The UGrad-CAMs will not be plotted for the input SMILES')
+        
     # check if the input is a file or a single compound
     if args.compound:
         smiles = args.compound
@@ -532,10 +546,7 @@ if __name__ == '__main__':
         print('[ERROR ] No input provided. Please provide a SMILES string or a file containing SMILES strings.')
         exit()
 
-    # --- Evaluating SMILES ---
-    f_df = eval_smiles(smiles,ground_truth=GT, verbose=args.verbose)
-
-    # --- Saving the output ---
+    # check if the output directory is provided and if it exists
     if args.directory:
         if not os.path.exists(args.directory):
             os.makedirs(args.directory)
@@ -545,9 +556,15 @@ if __name__ == '__main__':
         if not os.path.exists(output_path):
             os.makedirs(output_path)
 
-    f_df.to_csv(os.path.join(output_path, 'TML_output.csv'),sep=',')
-    print('[DONE  ] Prediction task completed.')
+    # --- Evaluating the input SMILES ---
+    final_results_df = eval_smiles_gcn(smiles, ground_truth=GT, verbose=args.verbose, plot_ugradcam=PLOT_UGRADCAM)
+    final_results_df.to_csv(os.path.join(output_path, 'GCN_output.csv'), index=False)
+
+    if PLOT_UGRADCAM:
+        print('[DONE   ] Prediction and explanation tasks completed.')
+    else:
+        print('[DONE   ] Prediction task completed.')
 
     if args.verbose:
         print(f"[INFO  ] Output saved in {output_path}/TML_output.csv\n\n")
-        print(f_df)
+        print(final_results_df)
