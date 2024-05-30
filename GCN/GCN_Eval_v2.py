@@ -487,7 +487,6 @@ def eval_smiles_gcn(smiles, ground_truth=True, verbose=False, plot_ugradcam=Fals
 
     return final_results_df
 
-
 def code_name():
     # print the name of the code "TAS2R Predictor" using ASCII art fun
     code_title = pyfiglet.figlet_format("TAS2R Predictor")
