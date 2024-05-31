@@ -34,8 +34,8 @@ conda install --yes -c mordred-descriptor mordred=1.2.0
 
 Others
 ``` 
-conda install --yes -c conda-forge tqdm=4.66.1 knnimpute=0.1.0 joblib=1.3.2 cython=3.0.10 scikit-learn=1.3.2 xmltodict=0.13.0
-pip install pyenchant pyfiglet
+conda install --yes -c conda-forge tqdm=4.66.1 knnimpute=0.1.0 joblib=1.3.2 cython=3.0.10 scikit-learn=1.3.2 xmltodict=0.13.0 pyfiglet
+pip install pyenchant 
 ```
 
 ### TML packages
@@ -113,3 +113,12 @@ python GCN/GCN_Eval.py
 ---
 
 Example Notebooks are available in both TML and GCN directory.
+
+
+
+
+# Troubleshooting
+On MacOS, if you encounter some errors related to pyenchants, you can try to set the following environment variable:
+```
+export PYENCHANT_LIBRARY_PATH=$(brew --prefix enchant)/lib/libenchant-2.dylib
+```
