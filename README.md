@@ -118,7 +118,8 @@ Example Notebooks are available in both TML and GCN directory.
 
 
 # Troubleshooting
-On MacOS, if you encounter some errors related to pyenchants, you can try to set the following environment variable:
+On MacOS, if you encounter some errors related to pyenchants, you can try this:
 ```
+brew install enchant
 export PYENCHANT_LIBRARY_PATH=$(brew --prefix enchant)/lib/libenchant-2.dylib
 ```
