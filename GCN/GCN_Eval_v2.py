@@ -419,7 +419,7 @@ def eval_smiles_gcn(smiles, ground_truth=True, verbose=False, plot_ugradcam=Fals
         output_prob = F.softmax(output, dim=1)
         preds = output_prob.argmax(dim=1)
 
-        if PLOT_UGRADCAM or len(smiles)==1:
+        if PLOT_UGRADCAM:
             print(f'[INFO   ] Plotting UGrad-CAMs for molecule #{nmol+1}')
 
         for position, receptor  in enumerate(receptors):
@@ -433,7 +433,7 @@ def eval_smiles_gcn(smiles, ground_truth=True, verbose=False, plot_ugradcam=Fals
             else:
                 name = molecules[nmol]
             
-            if PLOT_UGRADCAM or len(smiles)==1:
+            if PLOT_UGRADCAM:
                 print(f'[INFO   ]   - TAS2R{receptor}')
                 # Get the gradient of the output with respect to the parameters of the model 
                 if position + 1 == len(receptors):
