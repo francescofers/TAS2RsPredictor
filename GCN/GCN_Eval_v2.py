@@ -319,19 +319,31 @@ def ugrad_cam(mol, activations, gradients):
     return pos_node_heat_map + neg_node_heat_map
 
 # Function to Plot on Molecule
-def plot_on_mol(mol,name,receptor,pred,activations, gradients):
+def plot_on_mol(mol,name,receptor,pred,activations, gradients, outdir='UGradCAM'):
+    '''
+    Function to plot the UGrad-CAMs on the input molecule.
+    input:
+    - mol: SMILES string of the input molecule
+    - name: name of the input molecule
+    - receptor: number of the TAS2R receptor
+    - pred: predicted class of the input molecule
+    - activations: activations of the last convolutional layer
+    - gradients: gradients of the output with respect to the parameters of the model
+    - outdir: output directory where the UGrad-CAM plots will be saved
+    '''
+
     mol = Chem.MolFromSmiles(mol)
     test_mol = Draw.PrepareMolForDrawing(mol)
     test_mol = RemoveAllHs(test_mol) #IMPORTANT, RDKit PrepareMolForDrawing adds chiral Hs (bugged), so this patches the issue
 
-    if not os.path.exists('UGradCAM'):
-        os.makedirs('UGradCAM')
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
 
-    if not os.path.exists(f'UGradCAM/{name}'):
-        os.makedirs(f'UGradCAM/{name}')
+    if not os.path.exists(os.path.join(outdir,name)):
+        os.makedirs(os.path.join(outdir,name))
 
-    if not os.path.exists(f'UGradCAM/{name}/{pred}'):
-        os.makedirs(f'UGradCAM/{name}/{pred}')
+    if not os.path.exists(os.path.join(outdir,name,str(pred))):
+        os.makedirs(os.path.join(outdir,name,str(pred)))
 
     # Plot UGrad-CAM
     ugrad_cam_weights = ugrad_cam(mol, activations, gradients)
@@ -341,9 +353,9 @@ def plot_on_mol(mol,name,receptor,pred,activations, gradients):
     limit=[max(atom_weights)*(-1),max(atom_weights)]
     canvas = mapvalues2mol(test_mol, atom_weights, bond_weights,color=colorscale,value_lims=limit)
     img = transform2png(canvas.GetDrawingText())
-    img.save(f'UGradCAM/{name}/{pred}/TAS2R{receptor}.png') 
+    img.save(os.path.join(outdir,name,str(pred),f'TAS2R{receptor}.png'))
 
-def eval_smiles_gcn(smiles, ground_truth=True, verbose=False, plot_ugradcam=False):
+def eval_smiles_gcn(smiles, ground_truth=True, verbose=False, plot_ugradcam=False, outdir='results'):
     '''
     Function to evaluate the input SMILES strings and return the predicted association between the input molecules and the TAS2Rs.
     The function takes as input a list of SMILES strings and returns a dataframe with the predicted association between the input molecules and the TAS2Rs.
@@ -446,7 +458,7 @@ def eval_smiles_gcn(smiles, ground_truth=True, verbose=False, plot_ugradcam=Fals
                 # get the activations of the last convolutional layer
                 activations = model.get_activations(data.x)
 
-                plot_on_mol(molecules[nmol],name,receptor,pred,activations,gradients)
+                plot_on_mol(molecules[nmol],name,receptor,pred,activations,gradients, outdir=os.path.join(outdir,'UGradCAM'))
 
     final_results_df = final_results_df.round(decimals=2)
     final_results_df.index = molecules
@@ -557,7 +569,7 @@ if __name__ == '__main__':
             os.makedirs(output_path)
 
     # --- Evaluating the input SMILES ---
-    final_results_df = eval_smiles_gcn(smiles, ground_truth=GT, verbose=args.verbose, plot_ugradcam=PLOT_UGRADCAM)
+    final_results_df = eval_smiles_gcn(smiles, ground_truth=GT, verbose=args.verbose, plot_ugradcam=PLOT_UGRADCAM, outdir=output_path)
     final_results_df.to_csv(os.path.join(output_path, 'GCN_output.csv'), index=False)
 
     if PLOT_UGRADCAM:
