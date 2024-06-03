@@ -492,8 +492,10 @@ def eval_smiles_gcn(smiles, ground_truth=True, verbose=False, plot_ugradcam=Fals
     test       = [i[0] for i in check_AD]
     final_results_df.insert(loc=0, column='Check AD', value=test)
 
-    col = final_results_df.pop('Ground Truth')
-    final_results_df.insert(0, col.name, col)
+    if GT:
+        col = final_results_df.pop('Ground Truth')
+        final_results_df.insert(0, col.name, col)
+        
     final_results_df.insert(loc=0, column='Standardized SMILES',value=final_results_df.index)
     final_results_df = final_results_df.reset_index(drop=True)
 
