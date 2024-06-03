@@ -161,4 +161,29 @@ Baically, the user can run the code by providing a SMILES string (-c input) or a
 
 ### GCN model
 
+The main code to run the Graph Convolutional Neural Network model is `GCN_Eval.py` within the GCN/ folder.
 
+To learn how to run, just type:
+
+    python GCN/GCN_Eval.py --help
+
+And this will print the help message of the program:
+
+    usage: GCN_Eval.py [-h] (-c COMPOUND | -f FILE) [-t TYPE] [-d DIRECTORY] [-v] [-g] [-p]
+
+    optional arguments:
+    -h, --help            show this help message and exit
+    -c COMPOUND, --compound COMPOUND
+                            query compound (allowed file types are SMILES, FASTA, Inchi, PDB, Sequence, Smarts, pubchem name)
+    -f FILE, --file FILE  text file containing the query molecules
+    -t TYPE, --type TYPE  type of the input file (SMILES, FASTA, Inchi, PDB, Sequence, Smarts, pubchem name). If not specified, an automatic recognition of the input format will be
+                            tried
+    -d DIRECTORY, --directory DIRECTORY
+                            name of the output directory
+    -v, --verbose         Set verbose mode
+    -g, --ground_truth    Set to TRUE if you want to check if the input SMILES are already present in the ground truth dataset
+    -p, --plot            Set to TRUE if you want to plot the UGrad-CAMs
+
+Baically, the user can run the code by providing a SMILES string (-c input) or a file containing SMILES strings (-f input). The code will return the prediction of the model in the output folder defined using the -d option (folder 'results' otherwise).
+
+Note that the -p option is available only for the GCN model. It allows the user to plot the UGrad-CAMs of the input molecules. If you have a lot of molecules, this could take a while.
