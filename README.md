@@ -36,24 +36,24 @@ Including example notebooks to run the code and understand the workflow
 ----------------
 ## Prerequisites
 ----------------
-## Setting up the environment
+### Setting up the environment
 
-### 1. Create a new conda environment
+#### 1. Create a new conda environment
 ```
 conda create -n TAS2RPred python=3.9
 ```
 
-### 2. Activate the environment
+#### 2. Activate the environment
 ```
 conda activate TAS2RPred
 ```
 
-### 3. Install the basic packages
+#### 3. Install the basic packages
 ```
 conda install --yes -c conda-forge pandas=2.1.3 scipy=1.11.4 matplotlib=3.8.2
 ```
 
-### 4. Install VIRTUOUS library dependecies
+#### 4. Install VIRTUOUS library dependecies
 
 ChEMBL pipeline and RDKit
 ```
@@ -71,12 +71,12 @@ conda install --yes -c conda-forge tqdm=4.66.1 knnimpute=0.1.0 joblib=1.3.2 cyth
 pip install pyenchant 
 ```
 
-### 5. TML packages - CatBoost
+#### 5. TML packages - CatBoost
 ``` 
 conda install --yes -c conda-forge catboost=1.2.5
 ```
 
-### 6. GCN packages - Pytorch, PyG, NetworkX and rdkit_heatmaps
+#### 6. GCN packages - Pytorch, PyG, NetworkX and rdkit_heatmaps
 
 If CUDA is not available on your OS:
 ``` 
@@ -104,7 +104,7 @@ rdkit_heatmaps
 pip install git+https://github.com/c-feldmann/rdkit_heatmaps
 ```
 
-### 7. Others
+#### 7. Others
 
 notebook widgets
 ```
@@ -119,7 +119,7 @@ export PYENCHANT_LIBRARY_PATH=$(brew --prefix enchant)/lib/libenchant-2.dylib
 ```
 
 
-### 8. Clone the GitHub Repository
+#### 8. Clone the GitHub Repository
 
 ```
 git clone https://github.com/francescofers/TAS2RsPredictor
@@ -187,3 +187,5 @@ And this will print the help message of the program:
 Baically, the user can run the code by providing a SMILES string (-c input) or a file containing SMILES strings (-f input). The code will return the prediction of the model in the output folder defined using the -d option (folder 'results' otherwise).
 
 Note that the -p option is available only for the GCN model. It allows the user to plot the UGrad-CAMs of the input molecules. If you have a lot of molecules, this could take a while.
+
+###### If you want to train the GCN model on your dataset, you can use the `GCN_Train.py` script.
