@@ -387,7 +387,7 @@ def eval_smiles_gcn(smiles, ground_truth=True, verbose=False, plot_ugradcam=Fals
         smiles = [smiles]
 
     # Standardize molecules
-    molecules = Std(smiles)
+    molecules = Std(smiles) #### CHECK THIS!!!!
 
     # write a file of name Input_data.csv in raw
     # the format is ready to be predicted by the model
@@ -495,7 +495,7 @@ def eval_smiles_gcn(smiles, ground_truth=True, verbose=False, plot_ugradcam=Fals
     if GT:
         col = final_results_df.pop('Ground Truth')
         final_results_df.insert(0, col.name, col)
-        
+
     final_results_df.insert(loc=0, column='Standardized SMILES',value=final_results_df.index)
     final_results_df = final_results_df.reset_index(drop=True)
 
