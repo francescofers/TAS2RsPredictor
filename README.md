@@ -1,8 +1,41 @@
 # TAS2RsPredictor
+Official repo of the TAS2Rs Predictor developed in the framework of the EU-funded VIRTUOUS project
 
-Both the models take as input a .txt file containing the SMILES of the query molecules.
-Change the PATH variable in the evaluation scripts to input your own SMILES.
+[![Virtuous button][Virtuous_image]][Virtuous link]
 
+[Virtuous_image]: https://virtuoush2020.com/wp-content/uploads/2021/02/V_logo_h.png
+[Virtuous link]: https://virtuoush2020.com/
+
+
+### Repo Structure
+The repository is organized in the following folders:
+
+- **TML/**
+Including the Traditional Machine Learning model
+    - TML_Train.py: code to train your own model using a novel dataset
+    - TML_Eval.py: code to evaluate the model trained on our dataset
+    - Virtuous.py: library for general processing functions
+
+- **GCN/**
+Including the Graph Convolutional Neural Network model
+    - GCN_Train.py: code to train your own model using a novel dataset
+    - GCN_Eval.py: code to evaluate the model trained on our dataset
+    - Virtuous.py: library for general processing functions
+
+- **data/**
+Collecting the training and the test sets of the model and an example txt file to run the code
+
+- **notebooks/**
+Including example notebooks to run the code and understand the workflow
+
+### Authors
+1. [Francesco Ferri](https://github.com/francescofers)
+2. [Marco Cannariato](https://github.com/marcocannariato)
+2. [Lorenzo Pallante](https://github.com/lorenzopallante)
+
+----------------
+## Prerequisites
+----------------
 ## Setting up the environment
 
 ### 1. Create a new conda environment
@@ -38,16 +71,12 @@ conda install --yes -c conda-forge tqdm=4.66.1 knnimpute=0.1.0 joblib=1.3.2 cyth
 pip install pyenchant 
 ```
 
-### TML packages
-
-### 5.a CatBoost
+### 5. TML packages - CatBoost
 ``` 
 conda install --yes -c conda-forge catboost=1.2.5
 ```
 
-### GCN packages
-
-### 5.b Pytorch, PyG, NetworkX and rdkit_heatmaps
+### 6. GCN packages - Pytorch, PyG, NetworkX and rdkit_heatmaps
 
 If CUDA is not available on your OS:
 ``` 
@@ -75,56 +104,61 @@ rdkit_heatmaps
 pip install git+https://github.com/c-feldmann/rdkit_heatmaps
 ```
 
+### 7. Others
+
 notebook widgets
 ```
 conda install ipywidgets
 ```
 
-## Running the training and evaluation
+**Troubleshooting**
+>On MacOS, if you encounter some errors related to pyenchants, you can try this:
+```
+brew install enchant
+export PYENCHANT_LIBRARY_PATH=$(brew --prefix enchant)/lib/libenchant-2.dylib
+```
 
-### Clone the GitHub Repository
+
+### 8. Clone the GitHub Repository
 
 ```
 git clone https://github.com/francescofers/TAS2RsPredictor
 ```
 
+----------------
+## How to run the code
+----------------
+
 ### TML model
 
-### 1. Train the Traditional Machine Learning model
+The main code to run the Traditional Machine Learning model is `TML_Eval.py` within the TML/ folder.
 
-```
-python TML/TML_Train.py
-```
+To learn how to run, just type:
 
-### 2. Carry out the classification task with the trained Traditional Machine Learning model
+    python TML/TML_Eval.py --help
 
-```
-python TML/TML_Eval.py
-```
+And this will print the help message of the program:
+
+    usage: TML_Eval.py [-h] (-c COMPOUND | -f FILE) [-t TYPE] [-d DIRECTORY] [-v] [-g]
+
+    optional arguments:
+    -h, --help            show this help message and exit
+    -c COMPOUND, --compound COMPOUND
+                            query compound (allowed file types are SMILES, FASTA, Inchi, PDB, Sequence, Smarts, pubchem name)
+    -f FILE, --file FILE  text file containing the query molecules
+    -t TYPE, --type TYPE  type of the input file (SMILES, FASTA, Inchi, PDB, Sequence, Smarts, pubchem name). If not specified, an automatic recognition of the input format will be
+                            tried
+    -d DIRECTORY, --directory DIRECTORY
+                            name of the output directory
+    -v, --verbose         Set verbose mode
+    -g, --ground_truth    Set to TRUE if you want to check if the input SMILES are already present in the ground truth dataset
+
+Baically, the user can run the code by providing a SMILES string (-c input) or a file containing SMILES strings (-f input). The code will return the prediction of the model in the output folder defined using the -d option (folder 'results' otherwise).
+
+
+###### If you want to train the TML model on your dataset, you can use the `TML_Train.py` script.
+
 
 ### GCN model
 
-### 1. Train the Graph Convolutional Neural Network model
 
-```
-python GCN/GCN_Train.py
-```
-
-### 2. Carry out the classification task with the trained Convolutional Neural Network model
-```
-python GCN/GCN_Eval.py
-```
-
----
-
-Example Notebooks are available in both TML and GCN directory.
-
-
-
-
-# Troubleshooting
-On MacOS, if you encounter some errors related to pyenchants, you can try this:
-```
-brew install enchant
-export PYENCHANT_LIBRARY_PATH=$(brew --prefix enchant)/lib/libenchant-2.dylib
-```
