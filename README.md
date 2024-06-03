@@ -75,6 +75,11 @@ rdkit_heatmaps
 pip install git+https://github.com/c-feldmann/rdkit_heatmaps
 ```
 
+notebook widgets
+```
+conda install ipywidgets
+```
+
 ## Running the training and evaluation
 
 ### Clone the GitHub Repository
