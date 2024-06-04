@@ -31,11 +31,10 @@ from Virtuous import Calc_Mordred, ReadMol, Standardize, TestAD
 import os
 import argparse
 import pyfiglet
-from rdkit import Chem
 
 
 # Defining functions
-def Std(input_smiles):
+def Std(input_molecules, verbose=False):
     '''
     Standardize input SMILES using Virtuous package
     input_smiles: list of SMILES strings
@@ -43,7 +42,7 @@ def Std(input_smiles):
     '''
 
     # Sanitizing SMILES
-    mol_list = [ReadMol(mol,verbose=False) for mol in input_smiles]
+    mol_list = [ReadMol(mol,verbose=verbose) for mol in input_molecules]
 
     # Standardizing molecule
     mol_list_std = [Standardize(mol) for mol in mol_list]
@@ -54,16 +53,18 @@ def Std(input_smiles):
 def min_max_scaling(series,col,min_max):
     return (series - min_max[col].iloc[0]) / (min_max[col].iloc[1] - min_max[col].iloc[0])
 
-def eval_smiles(smiles, ground_truth=True, verbose=False):
+def eval_tml(cpnd, ground_truth=True, verbose=False):
     ''''
-    Evaluate a list of SMILES strings using the TML trained model
-    smiles: list of SMILES strings
-    ground_truth: boolean, if TRUE the function will check if the input SMILES are already present in the ground truth dataset
+    Evaluate the association between bitter molecules and TAS2Rs using a Traditional Machine Learning (TML) model
+    cpnd: list of compounds (e.g. SMILES strings)
+    ground_truth: if TRUE, the code will check if the input SMILES are already present in the ground truth dataset
+    verbose: if TRUE, the code will print additional information during the execution
+    return: dataframe with the predicted association between the input molecules and the TAS2Rs
     '''
 
     # CHECK if only one smile was given instead of a list
-    if type(smiles) != list:
-        smiles = [smiles]
+    if type(cpnd) != list:
+        cpnd = [cpnd]
 
     # ---------------
     # Defining parameters and loading files (model, applicability domain, min-max scaling)
@@ -72,7 +73,7 @@ def eval_smiles(smiles, ground_truth=True, verbose=False):
     code_path = os.path.dirname(os.path.realpath(__file__))
     root_path = os.path.dirname(code_path)
     data_path = os.path.join(root_path, 'data')
-    src_path = os.path.join(code_path, 'src')
+    src_path  = os.path.join(code_path, 'src')
 
     # Receptors that the model is trained to evaluate over
     hTAS2R = [1, 3, 4, 5, 7, 8, 9, 10, 13, 14, 16, 38, 39, 40, 41, 42, 43, 44, 46, 47, 49, 50]
@@ -97,7 +98,7 @@ def eval_smiles(smiles, ground_truth=True, verbose=False):
     # STANDARDIZATION
     if verbose:
         print('[INFO  ] Standardizing molecules')
-    std_smiles = Std(smiles)
+    std_smiles = Std(cpnd, verbose=verbose)
 
     # CHECK IF ALREADY KNOWN / INCOMPLETE -> 1/0 on know and prediction on unknown
     # TO REMOVE THIS CHECK set ground_truth to FALSE
@@ -232,8 +233,8 @@ if __name__ == '__main__':
     group.add_argument('-f','--file',help="text file containing the query molecules",default=None)
     parser.add_argument('-t', '--type', help="type of the input file (SMILES, FASTA, Inchi, PDB, Sequence, Smarts, pubchem name). If not specified, an automatic recognition of the input format will be tried", default=None)
     parser.add_argument('-d','--directory',help="name of the output directory",default=None)
-    parser.add_argument('-v','--verbose',help="Set verbose mode", default=False, action='store_true')
-    parser.add_argument('-g','--ground_truth',help="Set to TRUE if you want to check if the input SMILES are already present in the ground truth dataset", default=True, action='store_false')
+    parser.add_argument('-v','--verbose',help="If present, the code will print additional information during the execution",default=False, action='store_true')
+    parser.add_argument('-g','--ground_truth',help="If present, the code will check if the input SMILES are already present in the ground truth dataset",default=True, action='store_false')
     args = parser.parse_args()
 
     # Ground Truth Check - TRUE/FALSE - Default is TRUE
@@ -246,18 +247,13 @@ if __name__ == '__main__':
 
     # check if the input is a file or a single compound
     if args.compound:
-        smiles = args.compound
-        # Check if the input is a correct SMILES string
-        if not Chem.MolFromSmiles(smiles):
-            print('[ERROR ] The input provided is not a valid SMILES string!')
-            exit()
-
+        cpnd = args.compound
     elif args.file:
         PATH = os.path.abspath(args.file)
         with open(PATH) as f:
-            smiles = f.read().splitlines()
+            cpnd = f.read().splitlines()
     else:
-        print('[ERROR ] No input provided. Please provide a SMILES string or a file containing SMILES strings.')
+        print('[ERROR ] No input provided. Please provide a molecule with the -c option or a file containing a list of molecules with the -f option')
         exit()
 
     # check if the output directory is provided and if it exists
@@ -271,7 +267,7 @@ if __name__ == '__main__':
             os.makedirs(output_path)
 
     # --- Evaluating SMILES ---
-    f_df = eval_smiles(smiles,ground_truth=GT, verbose=args.verbose)
+    f_df = eval_tml(cpnd,ground_truth=GT, verbose=args.verbose)
     f_df.to_csv(os.path.join(output_path, 'TML_output.csv'),sep=',')
     print('[DONE  ] Prediction task completed.')
 
