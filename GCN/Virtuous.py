@@ -192,7 +192,7 @@ def ReadMol (file, type=None, verbose=True):
 
         # print the type of input (if pubchem name, no need to print it)
         if verbose and type != 'pubchem name':
-            print(f"[INFO ]Input has been interpeted as {type}")
+            print(f"[INFO  ] Input has been interpeted as {type}")
 
     # if the type is specified, read the file with the specified type
     else: 
