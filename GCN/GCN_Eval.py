@@ -49,22 +49,31 @@ from rdkit_heatmaps.utils import transform2png
 from rdkit import Chem
 from rdkit.Chem import Draw
 from rdkit.Chem.rdmolops import RemoveAllHs
-from Virtuous import TestAD
+from Virtuous import TestAD, ReadMol, Standardize
 import shutil
 import argparse
 import pyfiglet
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-# Defining functions
 
-# Standardize molecules
-def Std(input_smiles):
-    mol_list = [Chem.MolFromSmiles(mol) for mol in input_smiles]
-    std_mol_list = [standardizer.standardize_mol(mol) for mol in mol_list]
-    parent = [standardizer.get_parent_mol(std_mol)[0] for std_mol in std_mol_list]
-    parent_smi = [Chem.MolToSmiles(parent) for parent in parent]
+# Defining functions
+def Std(input_molecules, verbose=False):
+    '''
+    Standardize input SMILES using Virtuous package
+    input_smiles: list of SMILES strings
+    return: list of standardized SMILES strings
+    '''
+
+    # Sanitizing SMILES
+    mol_list = [ReadMol(mol,verbose=verbose) for mol in input_molecules]
+
+    # Standardizing molecule
+    mol_list_std = [Standardize(mol) for mol in mol_list]
+    parent_smi = [i[2] for i in mol_list_std]
+
     return parent_smi
+
 
 class MolDataset_exp(InMemoryDataset):
     """Class that defines the dataset for the model."""
@@ -354,10 +363,20 @@ def plot_on_mol(mol,name,receptor,pred,activations, gradients, outdir='UGradCAM'
     img = transform2png(canvas.GetDrawingText())
     img.save(os.path.join(outdir,name,str(pred),f'TAS2R{receptor}.png'))
 
-def eval_smiles_gcn(smiles, ground_truth=True, verbose=False, plot_ugradcam=False, outdir='results'):
+def eval_gcn(cpnd, ground_truth=True, verbose=False, plot_ugradcam=False, outdir='results'):
     '''
-    Function to evaluate the input SMILES strings and return the predicted association between the input molecules and the TAS2Rs.
-    The function takes as input a list of SMILES strings and returns a dataframe with the predicted association between the input molecules and the TAS2Rs.
+    Function to evaluate the input molecules strings and return the predicted association between the input molecules and the TAS2Rs.
+    The function takes as input a list of molecules strings and returns a dataframe with the predicted association between the input molecules and the TAS2Rs.
+    
+    input:
+    - cpnd: list of the input molecules (SMILES, FASTA, Inchi, PDB, Sequence, Smarts, pubchem name)
+    - ground_truth: if TRUE, the code will check if the input SMILES are already present in the ground truth dataset
+    - verbose: if TRUE, the code will print additional information during the execution
+    - plot_ugradcam: if TRUE, the code will plot the UGrad-CAMs for the input molecules
+    - outdir: output directory where the UGrad-CAM plots will be saved
+
+    return: dataframe with the predicted association between the input molecules and the TAS2Rs
+
     '''
 
     GT = ground_truth
@@ -382,11 +401,11 @@ def eval_smiles_gcn(smiles, ground_truth=True, verbose=False, plot_ugradcam=Fals
     os.makedirs(raw_folder)
 
     # CHECK if only one smile was given instead of a list
-    if type(smiles) != list:
-        smiles = [smiles]
+    if type(cpnd) != list:
+        cpnd = [cpnd]
 
     # Standardize molecules
-    molecules = Std(smiles)
+    molecules = Std(cpnd, verbose=verbose)
 
     # write a file of name Input_data.csv in raw
     # the format is ready to be predicted by the model
@@ -530,9 +549,9 @@ if __name__ == '__main__':
     group.add_argument('-f','--file',help="text file containing the query molecules",default=None)
     parser.add_argument('-t', '--type', help="type of the input file (SMILES, FASTA, Inchi, PDB, Sequence, Smarts, pubchem name). If not specified, an automatic recognition of the input format will be tried", default=None)
     parser.add_argument('-d','--directory',help="name of the output directory",default=None)
-    parser.add_argument('-v','--verbose',help="Set verbose mode", default=False, action='store_true')
-    parser.add_argument('-g','--ground_truth',help="Set to TRUE if you want to check if the input SMILES are already present in the ground truth dataset", default=True, action='store_false')
-    parser.add_argument('-p','--plot',help="Set to TRUE if you want to plot the UGrad-CAMs", default=False, action='store_true')
+    parser.add_argument('-v','--verbose',help="If present, the code will print additional information during the execution",default=False, action='store_true')
+    parser.add_argument('-g','--ground_truth',help="If present, the code will check if the input SMILES are already present in the ground truth dataset",default=True, action='store_false')
+    parser.add_argument('-p','--plot',help="If present, the code will plot the UGrad-CAMs for the input molecules",default=False, action='store_true')
     args = parser.parse_args()
 
     # Ground Truth Check - TRUE/FALSE - Default is TRUE
@@ -553,18 +572,13 @@ if __name__ == '__main__':
         
     # check if the input is a file or a single compound
     if args.compound:
-        smiles = args.compound
-        # Check if the input is a correct SMILES string
-        if not Chem.MolFromSmiles(smiles):
-            print('[ERROR ] The input provided is not a valid SMILES string!')
-            exit()
-
+        cpnd = args.compound
     elif args.file:
         PATH = os.path.abspath(args.file)
         with open(PATH) as f:
-            smiles = f.read().splitlines()
+            cpnd = f.read().splitlines()
     else:
-        print('[ERROR ] No input provided. Please provide a SMILES string or a file containing SMILES strings.')
+        print('[ERROR ] No input provided. Please provide a molecule with the -c option or a file containing a list of molecules with the -f option')
         exit()
 
     # check if the output directory is provided and if it exists
@@ -578,7 +592,7 @@ if __name__ == '__main__':
             os.makedirs(output_path)
 
     # --- Evaluating the input SMILES ---
-    final_results_df = eval_smiles_gcn(smiles, ground_truth=GT, verbose=args.verbose, plot_ugradcam=PLOT_UGRADCAM, outdir=output_path)
+    final_results_df = eval_gcn(cpnd, ground_truth=GT, verbose=args.verbose, plot_ugradcam=PLOT_UGRADCAM, outdir=output_path)
     final_results_df.to_csv(os.path.join(output_path, 'GCN_output.csv'), index=False)
 
     if PLOT_UGRADCAM:
