@@ -31,6 +31,7 @@ from Virtuous import Calc_Mordred, ReadMol, Standardize, TestAD
 import os
 import argparse
 import pyfiglet
+from rdkit import Chem
 
 
 # Defining functions
@@ -243,6 +244,11 @@ if __name__ == '__main__':
     # check if the input is a file or a single compound
     if args.compound:
         smiles = args.compound
+        # Check if the input is a correct SMILES string
+        if not Chem.MolFromSmiles(smiles):
+            print('[ERROR ] The input provided is not a valid SMILES string!')
+            exit()
+
     elif args.file:
         PATH = os.path.abspath(args.file)
         with open(PATH) as f:
