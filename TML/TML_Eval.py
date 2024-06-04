@@ -221,6 +221,9 @@ def code_name():
 
 if __name__ == '__main__':
 
+    # clear the screen
+    os.system('clear')
+
     # --- Parsing Input ---
     parser = argparse.ArgumentParser(description=code_name(), )
     # the user cannot provide both a compound and a file

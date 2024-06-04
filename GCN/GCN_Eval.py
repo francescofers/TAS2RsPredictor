@@ -519,6 +519,9 @@ def code_name():
 
 if __name__ == '__main__':
 
+    # clear the screen
+    os.system('clear')
+
     # --- Parsing Input ---
     parser = argparse.ArgumentParser(description=code_name(), )
     # the user cannot provide both a compound and a file
@@ -579,9 +582,9 @@ if __name__ == '__main__':
     final_results_df.to_csv(os.path.join(output_path, 'GCN_output.csv'), index=False)
 
     if PLOT_UGRADCAM:
-        print('[DONE   ] Prediction and explanation tasks completed.')
+        print('[DONE  ] Prediction and explanation tasks completed.')
     else:
-        print('[DONE   ] Prediction task completed.')
+        print('[DONE  ] Prediction task completed.')
 
     if args.verbose:
         print(f"[INFO  ] Output saved in {output_path}/TML_output.csv\n\n")
