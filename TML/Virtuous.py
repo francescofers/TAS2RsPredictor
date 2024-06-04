@@ -71,7 +71,7 @@ def pubchem_query(cpnd, verbose = True ):
         :param cpnd: Name of the query compound (e.g. "sucrose")
     """
     if verbose:
-        print(f"Querying PubChem for {cpnd}..." )
+        print(f"[INFO  ] Querying PubChem for {cpnd}..." )
 
     # start of the pubchem address
     prolog = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/"
@@ -94,7 +94,7 @@ def pubchem_query(cpnd, verbose = True ):
         cid = data.decode("utf-8").split("\n")[0]
         
         if verbose:
-            print("NOTE: Closest match on PubChem has CID %s!" % cid)
+            print("[INFO  ] Closest match on PubChem has CID %s!" % cid)
 
         # try to retrieve the SMILES
         try:
@@ -111,10 +111,10 @@ def pubchem_query(cpnd, verbose = True ):
             canonical_smiles = data_smi["PropertyTable"]["Properties"]["CanonicalSMILES"]
 
         except:
-            print(f"Cannot retrieve SMILES for {cpnd}")
+            print(f"[ERROR ] Cannot retrieve SMILES for {cpnd}")
 
     except:
-        print("Cannot retrieve CID for %s!" % cpnd)
+        print("[ERROR ] Cannot retrieve CID for %s!" % cpnd)
 
     return canonical_smiles
 
@@ -192,7 +192,7 @@ def ReadMol (file, type=None, verbose=True):
 
         # print the type of input (if pubchem name, no need to print it)
         if verbose and type != 'pubchem name':
-            print(f"Input has been interpeted as {type}")
+            print(f"[INFO ]Input has been interpeted as {type}")
 
     # if the type is specified, read the file with the specified type
     else: 
