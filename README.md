@@ -184,7 +184,7 @@ And this will print the help message of the program:
     -g, --ground_truth    Set to TRUE if you want to check if the input SMILES are already present in the ground truth dataset
     -p, --plot            Set to TRUE if you want to plot the UGrad-CAMs
 
-Baically, the user can run the code by providing a SMILES string (-c input) or a file containing SMILES strings (-f input). The code will return the prediction of the model in the output folder defined using the -d option (folder 'results' otherwise).
+Basically, the user can run the code by providing a SMILES string (-c input) or a file containing SMILES strings (-f input). The code will return the prediction of the model in the output folder defined using the -d option (folder 'results' otherwise).
 
 Note that the -p option is available only for the GCN model. It allows the user to plot the UGrad-CAMs of the input molecules. If you have a lot of molecules, this could take a while.
 
