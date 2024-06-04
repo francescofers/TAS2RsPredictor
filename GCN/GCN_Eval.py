@@ -358,7 +358,10 @@ def plot_on_mol(mol,name,receptor,pred,activations, gradients, outdir='UGradCAM'
     colorscale = 'bwr_r' if pred == 0 else 'bwr'
     atom_weights = ugrad_cam_weights
     bond_weights = np.zeros(len(test_mol.GetBonds()))
-    limit=[max(atom_weights)*(-1),max(atom_weights)]
+    if max(atom_weights) < 0:    
+        limit = [max(atom_weights), max(atom_weights) * (-1)]
+    else:    
+        limit=[max(atom_weights)*(-1),max(atom_weights)]
     canvas = mapvalues2mol(test_mol, atom_weights, bond_weights,color=colorscale,value_lims=limit)
     img = transform2png(canvas.GetDrawingText())
     img.save(os.path.join(outdir,name,str(pred),f'TAS2R{receptor}.png'))
