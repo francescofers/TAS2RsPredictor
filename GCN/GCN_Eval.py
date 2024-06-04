@@ -64,7 +64,6 @@ def Std(input_smiles):
     std_mol_list = [standardizer.standardize_mol(mol) for mol in mol_list]
     parent = [standardizer.get_parent_mol(std_mol)[0] for std_mol in std_mol_list]
     parent_smi = [Chem.MolToSmiles(parent) for parent in parent]
-
     return parent_smi
 
 class MolDataset_exp(InMemoryDataset):
@@ -387,7 +386,7 @@ def eval_smiles_gcn(smiles, ground_truth=True, verbose=False, plot_ugradcam=Fals
         smiles = [smiles]
 
     # Standardize molecules
-    molecules = Std(smiles) #### CHECK THIS!!!!
+    molecules = Std(smiles)
 
     # write a file of name Input_data.csv in raw
     # the format is ready to be predicted by the model
@@ -552,6 +551,11 @@ if __name__ == '__main__':
     # check if the input is a file or a single compound
     if args.compound:
         smiles = args.compound
+        # Check if the input is a correct SMILES string
+        if not Chem.MolFromSmiles(smiles):
+            print('[ERROR ] The input provided is not a valid SMILES string!')
+            exit()
+
     elif args.file:
         PATH = os.path.abspath(args.file)
         with open(PATH) as f:
