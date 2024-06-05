@@ -58,7 +58,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 # Defining functions
-def Std(input_molecules, verbose=False):
+def Std(input_molecules, verbose=False, type=None):
     '''
     Standardize input SMILES using Virtuous package
     input_smiles: list of SMILES strings
@@ -66,7 +66,7 @@ def Std(input_molecules, verbose=False):
     '''
 
     # Sanitizing SMILES
-    mol_list = [ReadMol(mol,verbose=verbose) for mol in input_molecules]
+    mol_list = [ReadMol(mol,verbose=verbose, type=type) for mol in input_molecules]
 
     # Standardizing molecule
     mol_list_std = [Standardize(mol) for mol in mol_list]
@@ -363,7 +363,7 @@ def plot_on_mol(mol,name,receptor,pred,activations, gradients, outdir='UGradCAM'
     img = transform2png(canvas.GetDrawingText())
     img.save(os.path.join(outdir,name,str(pred),f'TAS2R{receptor}.png'))
 
-def eval_gcn(cpnd, ground_truth=True, verbose=False, plot_ugradcam=False, outdir='results'):
+def eval_gcn(cpnd, ground_truth=True, verbose=False, plot_ugradcam=False, outdir='results', format=None):
     '''
     Function to evaluate the input molecules strings and return the predicted association between the input molecules and the TAS2Rs.
     The function takes as input a list of molecules strings and returns a dataframe with the predicted association between the input molecules and the TAS2Rs.
@@ -405,7 +405,7 @@ def eval_gcn(cpnd, ground_truth=True, verbose=False, plot_ugradcam=False, outdir
         cpnd = [cpnd]
 
     # Standardize molecules
-    molecules = Std(cpnd, verbose=verbose)
+    molecules = Std(cpnd, verbose=verbose, type=format)
 
     # write a file of name Input_data.csv in raw
     # the format is ready to be predicted by the model
@@ -592,7 +592,7 @@ if __name__ == '__main__':
             os.makedirs(output_path)
 
     # --- Evaluating the input SMILES ---
-    final_results_df = eval_gcn(cpnd, ground_truth=GT, verbose=args.verbose, plot_ugradcam=PLOT_UGRADCAM, outdir=output_path)
+    final_results_df = eval_gcn(cpnd, ground_truth=GT, verbose=args.verbose, plot_ugradcam=PLOT_UGRADCAM, outdir=output_path, format=args.type)
     final_results_df.to_csv(os.path.join(output_path, 'GCN_output.csv'), index=False)
 
     if PLOT_UGRADCAM:
