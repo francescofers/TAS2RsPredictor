@@ -356,7 +356,7 @@ def plot_on_mol(mol,name,receptor,pred,activations, gradients, outdir='UGradCAM'
     # Plot UGrad-CAM
     ugrad_cam_weights = ugrad_cam(mol, activations, gradients)
     colorscale = 'bwr_r' if pred == 0 else 'bwr'
-    atom_weights = ugrad_cam_weights * -1 # invert the colors
+    atom_weights = ugrad_cam_weights
     bond_weights = np.zeros(len(test_mol.GetBonds()))
     limit = [-1,1]
     canvas = mapvalues2mol(test_mol, atom_weights, bond_weights,color=colorscale,value_lims=limit)
