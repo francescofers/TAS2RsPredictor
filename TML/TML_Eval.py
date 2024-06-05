@@ -31,10 +31,11 @@ from Virtuous import Calc_Mordred, ReadMol, Standardize, TestAD
 import os
 import argparse
 import pyfiglet
+from rdkit import Chem
 
 
 # Defining functions
-def Std(input_molecules, verbose=False):
+def Std(input_molecules, verbose=False, type=None):
     '''
     Standardize input SMILES using Virtuous package
     input_smiles: list of SMILES strings
@@ -42,7 +43,7 @@ def Std(input_molecules, verbose=False):
     '''
 
     # Sanitizing SMILES
-    mol_list = [ReadMol(mol,verbose=verbose) for mol in input_molecules]
+    mol_list = [ReadMol(mol,verbose=verbose, type=type) for mol in input_molecules]
 
     # Standardizing molecule
     mol_list_std = [Standardize(mol) for mol in mol_list]
@@ -53,7 +54,7 @@ def Std(input_molecules, verbose=False):
 def min_max_scaling(series,col,min_max):
     return (series - min_max[col].iloc[0]) / (min_max[col].iloc[1] - min_max[col].iloc[0])
 
-def eval_tml(cpnd, ground_truth=True, verbose=False):
+def eval_tml(cpnd, ground_truth=True, verbose=False, format=None):
     ''''
     Evaluate the association between bitter molecules and TAS2Rs using a Traditional Machine Learning (TML) model
     cpnd: list of compounds (e.g. SMILES strings)
@@ -89,22 +90,38 @@ def eval_tml(cpnd, ground_truth=True, verbose=False):
     selected_columns = pd.read_csv(os.path.join(src_path, 'TML_sel_feature_per_iter.csv'),header=0).iloc[131,3]
     selected_columns = ast.literal_eval(selected_columns)
 
-    # Importing dataset for checks
+    # Importing dataset for checks using the inchi
     tdf = pd.read_csv(os.path.join(data_path, 'dataset.csv'), header=0, index_col=0)
     tdf.columns = tdf.columns.astype(int)
-
+    tdf_inchi = pd.read_csv(os.path.join(data_path, 'dataset_inchi.csv'), header=0, index_col=0)
 
     # ---------------
     # STANDARDIZATION
     if verbose:
         print('[INFO  ] Standardizing molecules')
-    std_smiles = Std(cpnd, verbose=verbose)
+    std_smiles = Std(cpnd, verbose=verbose, type=format)
+
+    # ---------------
+    ###### RIVEDERE
+    # query_inchis = [Chem.MolToInchi(Chem.MolFromSmiles(smi)) for smi in std_smiles]
+    # query_inchis_no_stereo = [Chem.MolToInchi(Chem.MolFromSmiles(smi), options='/SNon') for smi in std_smiles]
 
     # CHECK IF ALREADY KNOWN / INCOMPLETE -> 1/0 on know and prediction on unknown
     # TO REMOVE THIS CHECK set ground_truth to FALSE
     if ground_truth:
         # Firstly, we check if input smiles are already present in ground truth dataset
         std_known_smiles = tdf.loc[tdf.index.isin(std_smiles)]
+
+        ###########
+        # RIVEDERE
+        # pippo1 = tdf_inchi.loc[tdf_inchi['Inchi_no_stereo'].isin(query_inchis_no_stereo)]
+        # pippo2 = tdf_inchi.loc[tdf_inchi['Inchi'].isin(query_inchis)]
+        # print ('\n\n*******\nInchi No stereo\n', pippo1)
+        # print ('\n\n*******\nInchi con stereo:\n', pippo2)
+        # print ('\n\n*******\nSMILES\n', std_known_smiles)
+        # import sys
+        # sys.exit()
+
         # If the molecule is present BUT there are unknow associations we pass them through evaluation
         # Molecules with all known association will NOT be passed to evaluation and ground truth will be added at the end
         std_incomplete_smiles = std_known_smiles[std_known_smiles.isna().any(axis=1)]
@@ -267,7 +284,7 @@ if __name__ == '__main__':
             os.makedirs(output_path)
 
     # --- Evaluating SMILES ---
-    f_df = eval_tml(cpnd,ground_truth=GT, verbose=args.verbose)
+    f_df = eval_tml(cpnd,ground_truth=GT, verbose=args.verbose, format=args.type)
     f_df.to_csv(os.path.join(output_path, 'TML_output.csv'),sep=',')
     print('[DONE  ] Prediction task completed.')
 
