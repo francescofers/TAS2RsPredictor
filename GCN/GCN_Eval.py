@@ -363,14 +363,13 @@ def plot_on_mol(mol,name,receptor,pred,activations, gradients, outdir='UGradCAM'
     img = transform2png(canvas.GetDrawingText())
     img.save(os.path.join(outdir,name,str(pred),f'TAS2R{receptor}.png'))
 
-def eval_gcn(cpnd, ground_truth=True, verbose=False, plot_ugradcam=False, outdir='results', format=None):
+def eval_gcn(cpnd, verbose=False, plot_ugradcam=False, outdir='results', format=None):
     '''
     Function to evaluate the input molecules strings and return the predicted association between the input molecules and the TAS2Rs.
     The function takes as input a list of molecules strings and returns a dataframe with the predicted association between the input molecules and the TAS2Rs.
     
     input:
     - cpnd: list of the input molecules (SMILES, FASTA, Inchi, PDB, Sequence, Smarts, pubchem name)
-    - ground_truth: if TRUE, the code will check if the input SMILES are already present in the ground truth dataset
     - verbose: if TRUE, the code will print additional information during the execution
     - plot_ugradcam: if TRUE, the code will plot the UGrad-CAMs for the input molecules
     - outdir: output directory where the UGrad-CAM plots will be saved
@@ -379,7 +378,6 @@ def eval_gcn(cpnd, ground_truth=True, verbose=False, plot_ugradcam=False, outdir
 
     '''
 
-    GT = ground_truth
     PLOT_UGRADCAM = plot_ugradcam
     # Overrides naming of molecules as molecule_N, if False the standardized SMILES will be used
     NAME_OVERRIDE = False
@@ -480,40 +478,14 @@ def eval_gcn(cpnd, ground_truth=True, verbose=False, plot_ugradcam=False, outdir
 
     final_results_df = final_results_df.round(decimals=2)
     final_results_df.index = molecules
-    # CHECK IF ALREADY KNOWN / INCOMPLETE -> 1/0 on know and prediction on unknown
-    # TO REMOVE THIS CHECK set ground_truth to FALSE
-    if GT:
-        unk = ['Unknown'] * len(molecules)
-        final_results_df.insert(loc=0, column='Ground Truth', value=unk)
-        # Importing dataset for checks
-        tdf = pd.read_csv(os.path.join(data_path, 'dataset.csv'), header=0, index_col=0)
-        tdf.columns = tdf.columns.astype(int)
-
-        # Check if input smiles are already present in ground truth dataset
-        # Discriminate between fully known pairs, incomplete pairs and unknown
-        std_known_smiles = tdf.loc[tdf.index.isin(molecules)]
-        std_incomplete_smiles = std_known_smiles[std_known_smiles.isna().any(axis=1)]
-        std_fullyknown_smiles = std_known_smiles.dropna(how='any')
-
-        inc = ['Partially Known'] * len(std_incomplete_smiles.index)
-        std_incomplete_smiles['Ground Truth'] = inc
-
-        known = ['Fully Known'] * len(std_fullyknown_smiles)
-        std_fullyknown_smiles['Ground Truth'] = known
-
-        final_results_df.update(std_incomplete_smiles)
-        final_results_df.update(std_fullyknown_smiles)
 
     # CHECK if in Applicability Domain
     AD_file = os.path.join(src_path, 'AD.pkl')
     check_AD = [TestAD(smi, filename=AD_file, verbose = False, sim_threshold=0.2, neighbors = 5, metric = "tanimoto") for smi in molecules]
     test       = [i[0] for i in check_AD]
+
+    # Format the final dataframe to be returned
     final_results_df.insert(loc=0, column='Check AD', value=test)
-
-    if GT:
-        col = final_results_df.pop('Ground Truth')
-        final_results_df.insert(0, col.name, col)
-
     final_results_df.insert(loc=0, column='Standardized SMILES',value=final_results_df.index)
     final_results_df = final_results_df.reset_index(drop=True)
 
@@ -550,17 +522,8 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--type', help="type of the input file (SMILES, FASTA, Inchi, PDB, Sequence, Smarts, pubchem name). If not specified, an automatic recognition of the input format will be tried", default=None)
     parser.add_argument('-d','--directory',help="name of the output directory",default=None)
     parser.add_argument('-v','--verbose',help="If present, the code will print additional information during the execution",default=False, action='store_true')
-    parser.add_argument('-g','--ground_truth',help="If present, the code will check if the input SMILES are already present in the ground truth dataset",default=True, action='store_false')
     parser.add_argument('-p','--plot',help="If present, the code will plot the UGrad-CAMs for the input molecules",default=False, action='store_true')
     args = parser.parse_args()
-
-    # Ground Truth Check - TRUE/FALSE - Default is TRUE
-    GT = args.ground_truth 
-    if args.verbose:
-        if GT:
-            print('[INFO  ] Ground Truth Check Enabled: Checking if the input SMILES are already present in the ground truth dataset')
-        else:
-            print('[INFO  ] Ground Truth Check Disabled: The input SMILES will be evaluated without checking if they are already present in the ground truth dataset')
 
     # Plot UGrad-CAM - TRUE/FALSE - Default is FALSE
     PLOT_UGRADCAM = args.plot
@@ -592,7 +555,7 @@ if __name__ == '__main__':
             os.makedirs(output_path)
 
     # --- Evaluating the input SMILES ---
-    final_results_df = eval_gcn(cpnd, ground_truth=GT, verbose=args.verbose, plot_ugradcam=PLOT_UGRADCAM, outdir=output_path, format=args.type)
+    final_results_df = eval_gcn(cpnd, verbose=args.verbose, plot_ugradcam=PLOT_UGRADCAM, outdir=output_path, format=args.type)
     final_results_df.to_csv(os.path.join(output_path, 'GCN_output.csv'), index=False)
 
     if PLOT_UGRADCAM:

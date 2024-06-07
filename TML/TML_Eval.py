@@ -54,12 +54,12 @@ def Std(input_molecules, verbose=False, type=None):
 def min_max_scaling(series,col,min_max):
     return (series - min_max[col].iloc[0]) / (min_max[col].iloc[1] - min_max[col].iloc[0])
 
-def eval_tml(cpnd, ground_truth=True, verbose=False, format=None):
+def eval_tml(cpnd, verbose=False, format=None):
     ''''
     Evaluate the association between bitter molecules and TAS2Rs using a Traditional Machine Learning (TML) model
     cpnd: list of compounds (e.g. SMILES strings)
-    ground_truth: if TRUE, the code will check if the input SMILES are already present in the ground truth dataset
     verbose: if TRUE, the code will print additional information during the execution
+    format: type of the input file (SMILES, FASTA, Inchi, PDB, Sequence, Smarts, pubchem name). If not specified, an automatic recognition of the input format will be tried
     return: dataframe with the predicted association between the input molecules and the TAS2Rs
     '''
 
@@ -79,7 +79,7 @@ def eval_tml(cpnd, ground_truth=True, verbose=False, format=None):
     # Receptors that the model is trained to evaluate over
     hTAS2R = [1, 3, 4, 5, 7, 8, 9, 10, 13, 14, 16, 38, 39, 40, 41, 42, 43, 44, 46, 47, 49, 50]
 
-       # Applicability Domain file path
+    # Applicability Domain file path
     AD_file = os.path.join(src_path, 'AD.pkl')
 
     # Load the final model
@@ -101,57 +101,20 @@ def eval_tml(cpnd, ground_truth=True, verbose=False, format=None):
         print('[INFO  ] Standardizing molecules')
     std_smiles = Std(cpnd, verbose=verbose, type=format)
 
-    # ---------------
-    ###### RIVEDERE
-    # query_inchis = [Chem.MolToInchi(Chem.MolFromSmiles(smi)) for smi in std_smiles]
-    # query_inchis_no_stereo = [Chem.MolToInchi(Chem.MolFromSmiles(smi), options='/SNon') for smi in std_smiles]
-
-    # CHECK IF ALREADY KNOWN / INCOMPLETE -> 1/0 on know and prediction on unknown
-    # TO REMOVE THIS CHECK set ground_truth to FALSE
-    if ground_truth:
-        # Firstly, we check if input smiles are already present in ground truth dataset
-        std_known_smiles = tdf.loc[tdf.index.isin(std_smiles)]
-
-        ###########
-        # RIVEDERE
-        # pippo1 = tdf_inchi.loc[tdf_inchi['Inchi_no_stereo'].isin(query_inchis_no_stereo)]
-        # pippo2 = tdf_inchi.loc[tdf_inchi['Inchi'].isin(query_inchis)]
-        # print ('\n\n*******\nInchi No stereo\n', pippo1)
-        # print ('\n\n*******\nInchi con stereo:\n', pippo2)
-        # print ('\n\n*******\nSMILES\n', std_known_smiles)
-        # import sys
-        # sys.exit()
-
-        # If the molecule is present BUT there are unknow associations we pass them through evaluation
-        # Molecules with all known association will NOT be passed to evaluation and ground truth will be added at the end
-        std_incomplete_smiles = std_known_smiles[std_known_smiles.isna().any(axis=1)]
-        std_clean_smiles = [x for x in std_smiles if x not in std_known_smiles.index.astype(str)[:]]
-        std_clean_smiles += std_incomplete_smiles.index.astype(str)[:].to_list()
-        std_fullyknown_smiles = std_known_smiles.dropna(how='any')
-
-        # If all molecules passed are already present and fully known then simply return ground truth
-        if len(std_fullyknown_smiles.index) == len(std_smiles):
-            comp = ['Fully Known'] * len(std_fullyknown_smiles.index)
-            std_fullyknown_smiles['Ground Truth'] = comp
-            print ('[INFO  ] All input SMILES are already present in the ground truth dataset and fully known')
-            print ('[INFO  ] Ground truth returned')
-            return round(std_fullyknown_smiles,2)
-    else:
-        std_clean_smiles = std_smiles
-    
     # CHECK if in Applicability Domain
     if verbose:
         print('[INFO  ] Checking Applicability Domain')
-    check_AD = [TestAD(smi, filename=AD_file, verbose = False, sim_threshold=0.2, neighbors = 5, metric = "tanimoto") for smi in std_clean_smiles]
+    check_AD = [TestAD(smi, filename=AD_file, verbose = False, sim_threshold=0.2, neighbors = 5, metric = "tanimoto") for smi in std_smiles]
+
     test       = [i[0] for i in check_AD]
-    score      = [i[1] for i in check_AD]
-    sim_smiles = [i[2] for i in check_AD]
+    # score      = [i[1] for i in check_AD]
+    # sim_smiles = [i[2] for i in check_AD]
 
     # Calculating Mordred descriptors and selecting the important features
     if verbose:
         print('[INFO  ] Calculating descriptors')
-    mord_header = Calc_Mordred(std_clean_smiles[0])[0]
-    mol_mord_df = pd.DataFrame([Calc_Mordred(mol)[1] for mol in std_clean_smiles], index=std_clean_smiles, columns=mord_header)
+    mord_header = Calc_Mordred(std_smiles[0])[0]
+    mol_mord_df = pd.DataFrame([Calc_Mordred(mol)[1] for mol in std_smiles], index=std_smiles, columns=mord_header)
     mord_fs_df = mol_mord_df[mol_mord_df.columns.intersection(selected_columns)]
 
     # Min-Max scaling mordred descriptors
@@ -188,37 +151,13 @@ def eval_tml(cpnd, ground_truth=True, verbose=False, format=None):
     # Wrapping up results in predicted dataframe
     if verbose:
         print('[INFO  ] Wrapping up results')
-    results_df = pd.DataFrame(results,index=std_clean_smiles,columns=hTAS2R)
+    results_df = pd.DataFrame(results,index=std_smiles,columns=hTAS2R)
     results_df = round(results_df,2)
-
-    # Adding molecules with partial ground truth if present
-    unk = ['Absent'] * len(results_df.index)
-    results_df['Ground Truth'] = unk
     results_df.insert(loc=0, column='Check AD', value=test)
-    if ground_truth:
-        inc = ['Partially Known'] * len(std_incomplete_smiles.index)
-        std_incomplete_smiles['Ground Truth'] = inc
-
-        results_df.update(std_incomplete_smiles)
-        
-        # Adding input smiles that already have ground thruth for every receptor
-        comp = ['Fully Known'] * len(std_fullyknown_smiles.index)
-        std_fullyknown_smiles['Ground Truth'] = comp
-        test_dummy = [True] * len(std_fullyknown_smiles.index)
-        std_fullyknown_smiles.insert(loc=0, column='Check AD', value=test_dummy)
-
-    # Wrapping up results in final dataframe
-        final_results_df = pd.concat([results_df,std_fullyknown_smiles],axis=0)
-        col = final_results_df.pop('Ground Truth')
-        final_results_df.insert(0, col.name, col)
-    else:
-        final_results_df = results_df
-        final_results_df = final_results_df.drop(columns=['Ground Truth'])
+    results_df.insert(loc=0, column='Standardized SMILES',value=results_df.index)
+    results_df = results_df.reset_index(drop=True)
     
-    final_results_df.insert(loc=0, column='Standardized SMILES',value=final_results_df.index)
-    final_results_df = final_results_df.reset_index(drop=True)
-    
-    return final_results_df
+    return results_df
 
 def code_name():
     # print the name of the code "TAS2R Predictor" using ASCII art fun
@@ -251,16 +190,7 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--type', help="type of the input file (SMILES, FASTA, Inchi, PDB, Sequence, Smarts, pubchem name). If not specified, an automatic recognition of the input format will be tried", default=None)
     parser.add_argument('-d','--directory',help="name of the output directory",default=None)
     parser.add_argument('-v','--verbose',help="If present, the code will print additional information during the execution",default=False, action='store_true')
-    parser.add_argument('-g','--ground_truth',help="If present, the code will check if the input SMILES are already present in the ground truth dataset",default=True, action='store_false')
     args = parser.parse_args()
-
-    # Ground Truth Check - TRUE/FALSE - Default is TRUE
-    GT = args.ground_truth 
-    if args.verbose:
-        if GT:
-            print('[INFO  ] Ground Truth Check Enabled: Checking if the input SMILES are already present in the ground truth dataset')
-        else:
-            print('[INFO  ] Ground Truth Check Disabled: The input SMILES will be evaluated without checking if they are already present in the ground truth dataset')
 
     # check if the input is a file or a single compound
     if args.compound:
@@ -284,7 +214,7 @@ if __name__ == '__main__':
             os.makedirs(output_path)
 
     # --- Evaluating SMILES ---
-    f_df = eval_tml(cpnd,ground_truth=GT, verbose=args.verbose, format=args.type)
+    f_df = eval_tml(cpnd, verbose=args.verbose, format=args.type)
     f_df.to_csv(os.path.join(output_path, 'TML_output.csv'),sep=',')
     print('[DONE  ] Prediction task completed.')
 
