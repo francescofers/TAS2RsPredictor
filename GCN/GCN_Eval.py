@@ -487,6 +487,12 @@ def eval_gcn(cpnd, verbose=False, plot_ugradcam=False, outdir='results', format=
     final_results_df.insert(loc=0, column='Standardized SMILES',value=final_results_df.index)
     final_results_df = final_results_df.reset_index(drop=True)
 
+    # removing not needed files and folders
+    if os.path.exists(processed_folder):
+        shutil.rmtree(processed_folder)
+    if os.path.exists(raw_folder):
+        shutil.rmtree(raw_folder)
+
     return final_results_df
 
 def code_name():
