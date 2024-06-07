@@ -384,8 +384,6 @@ def eval_gcn(cpnd, verbose=False, plot_ugradcam=False, outdir='results', format=
 
     # setting the paths
     code_path = os.path.dirname(os.path.realpath(__file__))
-    root_path = os.path.dirname(code_path)
-    data_path = os.path.join(root_path, 'data')
     src_path = os.path.join(code_path, 'src')
 
     # Delete files from previous runs
