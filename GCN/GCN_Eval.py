@@ -491,7 +491,7 @@ def eval_gcn(cpnd, verbose=False, plot_ugradcam=False, outdir='results', format=
 
 def code_name():
     # print the name of the code "TAS2R Predictor" using ASCII art fun
-    code_title = pyfiglet.figlet_format("TAS2R Predictor")
+    code_title = pyfiglet.figlet_format("TAS2R Predictor - GCN", justify='center', width=160, font='standard')
     # subtitle in a smaller font
     code_subtitle = "Code to predict the association between bitter molecules and TAS2Rs using a Graph Convolutional Network (GCN) model."
     
