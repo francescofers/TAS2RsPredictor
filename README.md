@@ -150,8 +150,7 @@ And this will print the help message of the program:
                             tried
     -d DIRECTORY, --directory DIRECTORY
                             name of the output directory
-    -v, --verbose         Set verbose mode
-    -g, --ground_truth    Set to TRUE if you want to check if the input SMILES are already present in the ground truth dataset
+    -v, --verbose           If present, the code will print additional information during the execution
 
 Baically, the user can run the code by providing a SMILES string (-c input) or a file containing SMILES strings (-f input). The code will return the prediction of the model in the output folder defined using the -d option (folder 'results' otherwise).
 
@@ -180,9 +179,8 @@ And this will print the help message of the program:
                             tried
     -d DIRECTORY, --directory DIRECTORY
                             name of the output directory
-    -v, --verbose         Set verbose mode
-    -g, --ground_truth    Set to TRUE if you want to check if the input SMILES are already present in the ground truth dataset
-    -p, --plot            Set to TRUE if you want to plot the UGrad-CAMs
+    -v, --verbose           If present, the code will print additional information during the execution
+    -p, --plot              If present, the code will plot the UGrad-CAMs for the input molecules
 
 Basically, the user can run the code by providing a SMILES string (-c input) or a file containing SMILES strings (-f input). The code will return the prediction of the model in the output folder defined using the -d option (folder 'results' otherwise).
 
