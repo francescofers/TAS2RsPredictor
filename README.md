@@ -187,3 +187,10 @@ Basically, the user can run the code by providing a SMILES string (-c input) or 
 Note that the -p option is available only for the GCN model. It allows the user to plot the UGrad-CAMs of the input molecules. If you have a lot of molecules, this could take a while.
 
 ###### If you want to train the GCN model on your dataset, you can use the `GCN_Train.py` script.
+
+
+------------------
+## Acknowledgement
+------------------
+
+The present work has been developed as part of the VIRTUOUS project, funded by the European Union’s Horizon 2020 research and innovation program under the Marie Sklodowska-Curie-RISE Grant Agreement No 872181 (https://www.virtuoush2020.com/).
